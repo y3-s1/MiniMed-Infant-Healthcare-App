@@ -19,6 +19,7 @@ export default function TabLayout() {
         options={{
           title: 'Vaccination',
           tabBarIcon: ({ color }) => <MaterialIcons name="vaccines" size={24} color={color} />,
+          headerShown:false
         }}
       />
       <Tabs.Screen
