@@ -31,7 +31,7 @@ const Reminders = () => {
         data={reminders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View className='bg-cyan-200 rounded-lg p-4 mb-4'>
+          <View className='bg-blue-200 rounded-lg p-4 mb-4'>
             <View className='flex-row justify-between items-center mb-2'>
               <Text className='text-lg font-semibold'>
                 Vaccine - <Text className='font-bold'>{item.vaccine}</Text>

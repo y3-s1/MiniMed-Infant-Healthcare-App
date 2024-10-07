@@ -24,7 +24,7 @@ const Childs = () => {
       <Text className='text-lg font-semibold mb-2'>Childs</Text>
 
       {/* Child Card */}
-      <View className='bg-cyan-200 rounded-2xl p-4 flex-row items-center mb-4'>
+      <View className='bg-blue-200 rounded-2xl p-4 flex-row items-center mb-4'>
         <MaterialCommunityIcons name='account-outline' size={30} color='black' />
         <Text className='text-lg font-semibold ml-4'>{children[0]?.name}</Text>
       </View>

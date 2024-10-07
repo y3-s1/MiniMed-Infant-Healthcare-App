@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Header from '@/components/vaccination/home/Header';
 import VaccineHome from '../vaccination/home';
 import Vaccines from '../vaccination/vaccines';
+import AnalysisHome from '../vaccination/analysis';
 
 export default function Tab() {
   const [selectedTab, setSelectedTab] = useState('Home'); // Default tab is 'Vaccination'
@@ -15,7 +16,7 @@ export default function Tab() {
       case 'Vaccination':
         return <Vaccines/>
       case 'Analysis':
-        return <Text className="p-4">This is the Analysis section.</Text>;
+        return <AnalysisHome/>
       default:
         return null;
     }
