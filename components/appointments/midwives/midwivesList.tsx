@@ -37,6 +37,13 @@ const midwivesData = [
     experience: '6 years',
     image: 'https://via.placeholder.com/100',
   },
+  {
+    id: '5',
+    name: 'Emily Davis',
+    location: 'Houston',
+    experience: '6 years',
+    image: 'https://via.placeholder.com/100',
+  },
 ];
 
 const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
@@ -55,7 +62,7 @@ const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
     <View style={styles.container}>
       {filteredMidwives.length > 0 ? (
         <FlatList
-        style={{ height: Dimensions.get('window').height / 2 }} // Ensure FlatList has a defined height
+        // style={{ height: Dimensions.get('window').height / 1.5 }} // Ensure FlatList has a defined height
         data={filteredMidwives}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
@@ -83,6 +90,7 @@ const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+    marginBottom: 100,
   },
   midwifeCard: {
     flexDirection: 'row',  // Align image and details horizontally
