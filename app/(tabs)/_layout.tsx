@@ -27,6 +27,7 @@ export default function TabLayout() {
         options={{
           title: 'Appointments',
           tabBarIcon: ({ color }) => <FontAwesome5 name="tasks" size={24} color={color} />,
+          headerShown:false
         }}
       />
       <Tabs.Screen
