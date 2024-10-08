@@ -1,8 +1,9 @@
 // midwivesList.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { db } from '@/config/FireBaseConfig';  // Import your Firebase config
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { router } from 'expo-router';
 
 interface MidwivesListProps {
   searchQuery: string;
@@ -66,14 +67,20 @@ const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
           data={filteredMidwives}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <View style={styles.midwifeCard}>
+            <TouchableOpacity 
+              style={styles.midwifeCard}
+              onPress={() => router.navigate({
+                pathname: '/appointments/midwives/midwifeProfile',
+                params: { midwifeId: item.id },  
+              })}
+            >
               <Image source={{ uri: item.image }} style={styles.midwifeImage} />
               <View style={styles.midwifeDetails}>
                 <Text style={styles.midwifeName}>{item.name}</Text>
                 <Text style={styles.midwifeInfo}>Location: {item.location}</Text>
                 <Text style={styles.midwifeInfo}>Experience: {calculateExperience(item.joinedDate)}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         />
       ) : (
