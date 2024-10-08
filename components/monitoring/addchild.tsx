@@ -1,37 +1,51 @@
 import { View, Text, TextInput, Button, Alert, ScrollView } from 'react-native';
 import React, { useState } from 'react';
-import { getFirestore, collection, addDoc } from 'firebase/firestore'; // Ensure you have firebase/firestore installed
+import { getFirestore, collection, addDoc, doc } from 'firebase/firestore'; // Ensure you have firebase/firestore installed
 import { Picker } from '@react-native-picker/picker'; // Import Picker
 
 const AddChild = () => {
-  const [firstname, setFirstname] = useState('');
-  const [lastname, setLastname] = useState('');
+  const [name, setName] = useState(''); // Name instead of firstname/lastname
   const [birthday, setBirthday] = useState(new Date());
-  const [gender, setGender] = useState(''); // Default value can be an empty string or a default gender
+  const [gender, setGender] = useState('');
+  const [height, setHeight] = useState(''); // Height in cm
+  const [weight, setWeight] = useState(''); // Weight in kg
+  const [headCircumference, setHeadCircumference] = useState(''); // Head circumference in cm
+  const [location, setLocation] = useState(''); // New location state
+  const userId = '2DaIkDN1VUuNGk199UBJ'; // The fixed user ID for now
 
   const handleAddChild = async () => {
-    if (!firstname || !lastname || !gender) {
+    if (!name || !gender || !height || !weight || !headCircumference || !location) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
 
     try {
       const db = getFirestore();
-      const childrenCollection = collection(db, 'Children'); // Replace 'Children' with your actual collection name
+      const userDocRef = doc(db, 'Users', userId); // Reference the user's document
+      const childrenCollection = collection(userDocRef, 'Childrens'); // Reference the 'Childrens' sub-collection
 
+      // Add a new child document with measurement history and location
       await addDoc(childrenCollection, {
-        firstname,
-        lastname,
+        name,
         birthday: birthday.toISOString(), // Store the date in ISO format
         gender,
+        location, // Include location
+        measurements: {
+          heightHistory: [{ value: height, date: new Date().toISOString() }],
+          weightHistory: [{ value: weight, date: new Date().toISOString() }],
+          headCircumferenceHistory: [{ value: headCircumference, date: new Date().toISOString() }]
+        }
       });
 
       Alert.alert('Success', 'Child added successfully!');
       // Reset form
-      setFirstname('');
-      setLastname('');
+      setName('');
       setBirthday(new Date());
       setGender('');
+      setHeight('');
+      setWeight('');
+      setHeadCircumference('');
+      setLocation('');
     } catch (error) {
       console.error('Error adding child: ', error);
       Alert.alert('Error', 'Could not add child. Please try again.');
@@ -42,21 +56,12 @@ const AddChild = () => {
     <ScrollView className='flex-1 bg-gray-100 p-4'>
       <Text className='text-lg font-semibold mb-4'>Add Child</Text>
 
-      {/* First Name Input */}
-      <Text className='mb-1'>First Name</Text>
+      {/* Name Input */}
+      <Text className='mb-1'>Name</Text>
       <TextInput
-        placeholder="Enter First Name"
-        value={firstname}
-        onChangeText={setFirstname}
-        className='border p-2 mb-4'
-      />
-
-      {/* Last Name Input */}
-      <Text className='mb-1'>Last Name</Text>
-      <TextInput
-        placeholder="Enter Last Name"
-        value={lastname}
-        onChangeText={setLastname}
+        placeholder="Enter Name"
+        value={name}
+        onChangeText={setName}
         className='border p-2 mb-4'
       />
 
@@ -133,6 +138,45 @@ const AddChild = () => {
         <Picker.Item label="Male" value="Male" />
         <Picker.Item label="Female" value="Female" />
       </Picker>
+
+      {/* Height Input */}
+      <Text className='mb-1'>Height (cm)</Text>
+      <TextInput
+        placeholder="Enter Height in cm"
+        value={height}
+        onChangeText={setHeight}
+        keyboardType="numeric"
+        className='border p-2 mb-4'
+      />
+
+      {/* Weight Input */}
+      <Text className='mb-1'>Weight (kg)</Text>
+      <TextInput
+        placeholder="Enter Weight in kg"
+        value={weight}
+        onChangeText={setWeight}
+        keyboardType="numeric"
+        className='border p-2 mb-4'
+      />
+
+      {/* Head Circumference Input */}
+      <Text className='mb-1'>Head Circumference (cm)</Text>
+      <TextInput
+        placeholder="Enter Head Circumference in cm"
+        value={headCircumference}
+        onChangeText={setHeadCircumference}
+        keyboardType="numeric"
+        className='border p-2 mb-4'
+      />
+
+      {/* Location Input */}
+      <Text className='mb-1'>Location</Text>
+      <TextInput
+        placeholder="Enter Location"
+        value={location}
+        onChangeText={setLocation}
+        className='border p-2 mb-4'
+      />
 
       {/* Add Child Button */}
       <Button title="Add Child" onPress={handleAddChild} />
