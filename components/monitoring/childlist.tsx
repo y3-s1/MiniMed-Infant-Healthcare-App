@@ -1,6 +1,7 @@
-import { View, Text, FlatList } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { getFirestore, collection, getDocs, doc } from 'firebase/firestore';
 
 interface Child {
@@ -10,8 +11,13 @@ interface Child {
   birthday: string; // ISO format
 }
 
-// Function to calculate the age in years, months, and days without additional libraries
-const calculateAge = (birthday: string) => {
+type RootStackParamList = {
+  ChildMonitor: { childId: string; childName: string };
+};
+
+type ChildListNavigationProp = StackNavigationProp<RootStackParamList, 'ChildMonitor'>;
+
+const calculateAge = (birthday: string): string => {
   const birthDate = new Date(birthday);
   const today = new Date();
 
@@ -33,17 +39,16 @@ const calculateAge = (birthday: string) => {
   return `${years} years, ${months} months, ${days} days`;
 };
 
-const ChildList = () => {
+const ChildList: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const userId = '2DaIkDN1VUuNGk199UBJ'; // Fixed userId
+  const navigation = useNavigation<ChildListNavigationProp>();
 
   useEffect(() => {
     const fetchChildren = async () => {
       try {
         const db = getFirestore();
-        // Reference to the 'Users' collection and the specific document by userId
         const userDocRef = doc(db, 'Users', userId);
-        // Reference to the 'Childrens' sub-collection inside the user document
         const childrenCollection = collection(userDocRef, 'Childrens');
         const childrenSnapshot = await getDocs(childrenCollection);
 
@@ -62,9 +67,12 @@ const ChildList = () => {
     fetchChildren();
   }, []);
 
+  const handleMonitorPress = (childId: string, childName: string) => {
+    navigation.navigate('ChildMonitor', { childId, childName });
+  };
+
   return (
     <View className="flex-1 p-4">
-      {/* Children Section */}
       <Text className="text-lg font-semibold mb-2">Children List</Text>
       <FlatList
         data={children}
@@ -72,23 +80,22 @@ const ChildList = () => {
         renderItem={({ item }) => (
           <View className="bg-blue-200 rounded-lg p-4 mb-4">
             <View className="mb-2">
-              {/* First Name */}
               <Text className="text-lg font-semibold">
                 Name: <Text className="font-bold">{item.name}</Text>
               </Text>
-
-              {/* Gender */}
               <Text className="text-lg font-semibold">
                 Gender: <Text className="font-bold">{item.gender}</Text>
               </Text>
-
-              {/* Calculated Age */}
               <Text className="text-lg font-semibold">
                 Age: <Text className="font-bold">{calculateAge(item.birthday)}</Text>
               </Text>
             </View>
-
-            
+            <TouchableOpacity
+              className="bg-blue-500 p-2 rounded-lg mt-2"
+              onPress={() => handleMonitorPress(item.id, item.name)}
+            >
+              <Text className="text-white text-center font-semibold">Monitor</Text>
+            </TouchableOpacity>
           </View>
         )}
       />

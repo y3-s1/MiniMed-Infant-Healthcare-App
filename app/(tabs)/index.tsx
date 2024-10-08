@@ -1,41 +1,57 @@
-import { View, Text, StyleSheet } from 'react-native';
-import Header from '@/components/monitoring/header';
 import React, { useState } from 'react';
-import ChildList from '@/components/monitoring/childlist'; 
+import { View, StyleSheet } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
+import Header from '@/components/monitoring/header';
+import ChildList from '@/components/monitoring/childlist';
 import AddChild from '@/components/monitoring/addchild';
+import ChildMonitor from '@/components/monitoring/ChildMonitor';
 
-export default function Tab() {
-  const [selectedTab, setSelectedTab] = useState('ChildList'); // Default value
+type RootStackParamList = {
+  Main: undefined;
+  ChildMonitor: { childId: string; childName: string };
+};
 
-  // Render different content based on selected tab
-  const renderContent = () => {
-    switch (selectedTab) {
-      case 'ChildList':
-        return <ChildList />; // Component to show the child list
-      case 'AddChild':
-        return <AddChild />; // Component to add a child
-      default:
-        return null; // Fallback if no case matches
-    }
-  };
+const Stack = createStackNavigator<RootStackParamList>();
+
+const MainScreen = () => {
+  const [selectedTab, setSelectedTab] = useState('ChildList');
 
   return (
     <View style={styles.container}>
       <Header selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
       <View style={styles.content}>
-        {renderContent()}
+        {selectedTab === 'ChildList' ? <ChildList /> : <AddChild />}
       </View>
     </View>
+  );
+};
+
+export default function Tab() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Main"
+        component={MainScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ChildMonitor"
+        component={ChildMonitor}
+        options={({ route }) => ({ 
+          title: `Monitor: ${route.params.childName}` 
+        })}
+      />
+    </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // Optional: Define a background color
+    backgroundColor: '#fff',
   },
   content: {
-    flex: 1, // This allows the content to fill the remaining space after the header
-    padding: 16, // Optional: Add padding to content
+    flex: 1,
+    padding: 16,
   },
 });
