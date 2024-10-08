@@ -45,23 +45,23 @@ const UniqueChildDetails: React.FC<UniqueChildDetailsProps> = ({
   return (
     <View>
       
-        <Text className="text-lg font-semibold">
-        Name: <Text className="font-bold">{childName}</Text>
+        <Text className="text-lg font-semibold mb-5 mt-5">
+        <Text className="text-3xl font-bold text-blue-500">{childName}</Text>
         </Text>
-        <Text className="text-lg font-semibold">
-        Age: <Text className="font-bold">{calculateAge(birthday)}</Text>
+        <Text className="text-lg font-semibold mb-1 text-gray-600">
+        Age: <Text className="font-bold text-blue-500">{calculateAge(birthday)}</Text>
         </Text>
-        <Text className="text-lg font-semibold">
-        Gender: <Text className="font-bold">{gender}</Text>
+        <Text className="text-lg font-semibold mb-1 text-gray-600">
+        Gender: <Text className="font-bold text-blue-500">{gender}</Text>
         </Text>
-        <Text className="text-lg font-semibold">
-        Height: <Text className="font-bold">{height}cm</Text>
+        <Text className="text-lg font-semibold mb-1 text-gray-600">
+        Height: <Text className="font-bold text-blue-500">{height}cm</Text>
         </Text>
-        <Text className="text-lg font-semibold">
-        Weight: <Text className="font-bold">{weight}kg</Text>
+        <Text className="text-lg font-semibold mb-1 text-gray-600">
+        Weight: <Text className="font-bold text-blue-500">{weight}kg</Text>
         </Text>
-        <Text className="text-lg font-semibold">
-        Head Circumference: <Text className="font-bold">{headCircumference}cm</Text>
+        <Text className="text-lg font-semibold text-gray-600">
+        Head Circumference: <Text className="font-bold text-blue-500">{headCircumference}cm</Text>
         </Text>
     </View>
   );

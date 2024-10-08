@@ -80,7 +80,7 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
 
       {/* Scrollable content */}
       <ScrollView className="flex-1 px-4 pt-4">
-        <Text className="text-lg font-semibold mb-4">Monitoring {childName}</Text>
+        
 
         {/* Conditionally render content based on selected tab */}
         {selectedTab === 'Childdetails' && childDetails && (

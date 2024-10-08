@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { View, Text, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
 
 type UpdateMetricsProps = {
   childId: string;
@@ -30,6 +30,8 @@ const UpdateMetrics: React.FC<UpdateMetricsProps> = ({ childId, childName, onUpd
 
   return (
     <View style={{ padding: 16 }}>
+
+        <Text className='text-2xl mb-8 font-semibold'>Update Growth Metrics</Text>
       
       <Text className='mb-2 font-semibold'>Update Height:</Text>
       <TextInput
@@ -60,7 +62,12 @@ const UpdateMetrics: React.FC<UpdateMetricsProps> = ({ childId, childName, onUpd
         className='border border-gray-400 p-3 mb-8 rounded'
         placeholderTextColor="#888"
       />
-      <Button  title="Update Metrics" onPress={handleSubmit} />
+      <TouchableOpacity 
+        className='bg-blue-200 p-3 rounded mb-5'
+        onPress={handleSubmit}
+      >
+        <Text className='text-center text-blue-800 font-semibold mt-2 mb-2'>Update Metrics</Text>
+      </TouchableOpacity>
     </View>
   );
 };
