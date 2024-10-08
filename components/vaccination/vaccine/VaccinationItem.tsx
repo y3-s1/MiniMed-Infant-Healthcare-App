@@ -56,7 +56,7 @@ const VaccinationTab = () => {
         ...doc.data() 
       }));
       // Fetch the vaccination record of a specific child (example childId)
-      const childDoc = await getDocs(collection(db, "Users", "ZVRLK2MapOWefe2BYC1L", "Childrens", "ChildID_abc", "VaccinationRecords"));
+      const childDoc = await getDocs(collection(db, "Users", "2DaIkDN1VUuNGk199UBJ", "Childrens", "child_4", "VaccinationRecords"));
       const childData = childDoc.docs.map(doc => doc.data());
 
       // Merge data from vaccinationSchedule and child vaccinationRecord

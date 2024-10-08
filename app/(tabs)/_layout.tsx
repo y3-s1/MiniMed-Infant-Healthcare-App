@@ -2,9 +2,16 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Feather from '@expo/vector-icons/Feather';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { SignedIn, useAuth } from '@clerk/clerk-expo';
 
 export default function TabLayout() {
+  // const { isSignedIn } = useAuth();
+
+  // if (!isSignedIn) {
+  //   return <Redirect href="/login/sign-in" />;
+  // }
+
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#2896B5' }}>
       <Tabs.Screen
@@ -19,7 +26,7 @@ export default function TabLayout() {
         options={{
           title: 'Vaccination',
           tabBarIcon: ({ color }) => <MaterialIcons name="vaccines" size={24} color={color} />,
-          headerShown:false
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -27,7 +34,7 @@ export default function TabLayout() {
         options={{
           title: 'Appointments',
           tabBarIcon: ({ color }) => <FontAwesome5 name="tasks" size={24} color={color} />,
-          headerShown:false
+          headerShown: false,
         }}
       />
       <Tabs.Screen
