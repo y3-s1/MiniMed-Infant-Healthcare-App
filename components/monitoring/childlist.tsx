@@ -78,7 +78,7 @@ const ChildList: React.FC = () => {
         data={children}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View className="bg-blue-200 rounded-lg p-4 mb-4">
+          <View className="bg-blue-100 rounded-lg p-6 mb-6">
             <View className="mb-2">
               <Text className="text-lg font-semibold">
                 Name: <Text className="font-bold">{item.name}</Text>
@@ -94,7 +94,7 @@ const ChildList: React.FC = () => {
               className="bg-blue-500 p-2 rounded-lg mt-2"
               onPress={() => handleMonitorPress(item.id, item.name)}
             >
-              <Text className="text-white text-center font-semibold">Monitor</Text>
+              <Text className="text-white text-center font-semibold mb-1 mt-1">Monitor</Text>
             </TouchableOpacity>
           </View>
         )}

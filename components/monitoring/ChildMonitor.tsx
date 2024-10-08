@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Import Firestore methods
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 import Childmonitorheader from './childmonitorheader';
 import UniqueChildDetails from './uniqueChildMonitoring/uniquechilddetails';
 import UniqueMonitor from './uniqueChildMonitoring/uniquemonitor';
@@ -31,7 +31,7 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
   useEffect(() => {
     const fetchChildDetails = async () => {
       const db = getFirestore();
-      const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId); // Use the fixed user ID
+      const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
       const childSnap = await getDoc(childRef);
 
       if (childSnap.exists()) {
@@ -45,9 +45,33 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
     fetchChildDetails();
   }, [childId]);
 
+  // Function to handle metrics update
+  const handleUpdateMetrics = async (newMetrics: { height: string; weight: string; headCircumference: string }) => {
+    const db = getFirestore();
+    const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
+
+    try {
+      // Update the metrics in Firestore
+      await updateDoc(childRef, {
+        'measurements.heightHistory': [...(childDetails.measurements?.heightHistory || []), { value: newMetrics.height }],
+        'measurements.weightHistory': [...(childDetails.measurements?.weightHistory || []), { value: newMetrics.weight }],
+        'measurements.headCircumferenceHistory': [...(childDetails.measurements?.headCircumferenceHistory || []), { value: newMetrics.headCircumference }],
+      });
+      Alert.alert('Success', 'Metrics updated successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update metrics. Please try again.');
+      console.error('Error updating metrics:', error);
+    }
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />; // Loading indicator
   }
+
+  // Get the latest metrics
+  const latestHeight = childDetails?.measurements?.heightHistory?.slice(-1)[0]?.value || 'N/A';
+  const latestWeight = childDetails?.measurements?.weightHistory?.slice(-1)[0]?.value || 'N/A';
+  const latestHeadCircumference = childDetails?.measurements?.headCircumferenceHistory?.slice(-1)[0]?.value || 'N/A';
 
   return (
     <View className="flex-1">
@@ -65,9 +89,9 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
             childName={childName}
             birthday={childDetails.birthday}
             gender={childDetails.gender}
-            height={childDetails.measurements?.heightHistory[0]?.value} // Ensure you are accessing correctly
-            weight={childDetails.measurements?.weightHistory[0]?.value} // Ensure you are accessing correctly
-            headCircumference={childDetails.measurements?.headCircumferenceHistory[0]?.value} // Ensure you are accessing correctly
+            height={latestHeight} // Use the latest height
+            weight={latestWeight} // Use the latest weight
+            headCircumference={latestHeadCircumference} // Use the latest head circumference
           />
         )}
 
@@ -76,7 +100,11 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
         )}
 
         {selectedTab === 'updatemetrics' && (
-          <UpdateMetrics childId={childId} childName={childName} />
+          <UpdateMetrics 
+            childId={childId} 
+            childName={childName} 
+            onUpdateMetrics={handleUpdateMetrics} // Pass the update function
+          />
         )}
       </ScrollView>
     </View>
