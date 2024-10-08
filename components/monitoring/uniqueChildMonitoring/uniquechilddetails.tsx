@@ -81,13 +81,13 @@ const UniqueChildDetails: React.FC<UniqueChildDetailsProps> = ({
       <Text className="text-lg font-semibold mb-1 text-gray-600">
         Weight: <Text className="font-bold text-blue-500">{weight}kg</Text>
       </Text>
-      <Text className="text-lg font-semibold text-gray-600">
+      <Text className="text-lg font-semibold text-gray-600 mb-20">
         Head Circumference: <Text className="font-bold text-blue-500">{headCircumference}cm</Text>
       </Text>
 
       {/* Delete Button */}
       <TouchableOpacity 
-        className='bg-red-500 p-3 rounded mt-5'
+        className='bg-red-400 p-3 rounded mt-5'
         onPress={handleDelete}
       >
         <Text className='text-center text-white font-semibold'>Delete Child</Text>
