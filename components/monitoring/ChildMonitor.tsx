@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import Childmonitorheader from './childmonitorheader';
 import UniqueChildDetails from './uniqueChildMonitoring/uniquechilddetails';
 import UniqueMonitor from './uniqueChildMonitoring/uniquemonitor';
@@ -10,6 +10,7 @@ import UpdateMetrics from './uniqueChildMonitoring/updatemetrics';
 
 type RootStackParamList = {
   ChildMonitor: { childId: string; childName: string };
+  Home: undefined; // Define Home without parameters
 };
 
 type ChildMonitorRouteProp = RouteProp<RootStackParamList, 'ChildMonitor'>;
@@ -20,7 +21,7 @@ type Props = {
   navigation: ChildMonitorNavigationProp;
 };
 
-const ChildMonitor: React.FC<Props> = ({ route }) => {
+const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
   const { childId, childName } = route.params;
 
   // State to store child details
@@ -64,6 +65,21 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
     }
   };
 
+  // Function to handle deleting the child
+  const handleDeleteChild = async (childId: string) => {
+    const db = getFirestore();
+    const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
+
+    try {
+      await deleteDoc(childRef); // Delete the child document from Firestore
+      Alert.alert('Success', 'Child deleted successfully!');
+      // navigation.navigate('Home'); // Remove this line to stop navigating to home
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete child. Please try again.');
+      console.error('Error deleting child:', error);
+    }
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />; // Loading indicator
   }
@@ -80,8 +96,6 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
 
       {/* Scrollable content */}
       <ScrollView className="flex-1 px-4 pt-4">
-        
-
         {/* Conditionally render content based on selected tab */}
         {selectedTab === 'Childdetails' && childDetails && (
           <UniqueChildDetails 
@@ -92,6 +106,7 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
             height={latestHeight} // Use the latest height
             weight={latestWeight} // Use the latest weight
             headCircumference={latestHeadCircumference} // Use the latest head circumference
+            onDeleteChild={handleDeleteChild} // Pass the delete function
           />
         )}
 
