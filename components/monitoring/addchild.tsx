@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Button, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
 import { getFirestore, collection, addDoc, doc } from 'firebase/firestore'; // Ensure you have firebase/firestore installed
 import { Picker } from '@react-native-picker/picker'; // Import Picker
@@ -53,24 +53,25 @@ const AddChild = () => {
   };
 
   return (
-    <ScrollView className='flex-1 bg-gray-100 p-4'>
-      <Text className='text-lg font-semibold mb-4'>Add Child</Text>
+    <ScrollView className='flex-1 p-4'>
+      <Text className='text-lg font-semibold mb-7'>Add Child</Text>
 
       {/* Name Input */}
-      <Text className='mb-1'>Name</Text>
+      <Text className='mb-1 font-semibold'>Name</Text>
       <TextInput
         placeholder="Enter Name"
         value={name}
         onChangeText={setName}
-        className='border p-2 mb-4'
+        className='border border-gray-400 p-3 mb-8 rounded'
+        placeholderTextColor="#888"
       />
 
       {/* Birthday Picker */}
-      <Text className='mb-1'>Birthday</Text>
+      <Text className='mb-1 font-semibold mb-3'>Birthday</Text>
       <View className='flex-row justify-between mb-4'>
         {/* Year Picker */}
         <View className='flex-1 mr-2'>
-          <Text className='mb-1'>Year</Text>
+          <Text className='mb-1 font-semibold'>Year</Text>
           <Picker
             selectedValue={birthday.getFullYear()}
             onValueChange={(itemValue) => {
@@ -89,7 +90,7 @@ const AddChild = () => {
 
         {/* Month Picker */}
         <View className='flex-1 mr-2'>
-          <Text className='mb-1'>Month</Text>
+          <Text className='mb-1 font-semibold'>Month</Text>
           <Picker
             selectedValue={birthday.getMonth() + 1} // Month is 0-indexed
             onValueChange={(itemValue) => {
@@ -107,7 +108,7 @@ const AddChild = () => {
 
         {/* Day Picker */}
         <View className='flex-1'>
-          <Text className='mb-1'>Day</Text>
+          <Text className='mb-1 font-semibold'>Day</Text>
           <Picker
             selectedValue={birthday.getDate()}
             onValueChange={(itemValue) => {
@@ -125,10 +126,10 @@ const AddChild = () => {
       </View>
 
       {/* Display selected date */}
-      <Text className='mb-4'>Selected Date: {birthday.toLocaleDateString()}</Text>
+      <Text className='mb-4 font-semibold mb-10'>Selected Date: {birthday.toLocaleDateString()}</Text>
 
       {/* Gender Picker */}
-      <Text className='mb-1'>Gender</Text>
+      <Text className='mb-1 font-semibold'>Gender</Text>
       <Picker
         selectedValue={gender}
         onValueChange={(itemValue) => setGender(itemValue)}
@@ -140,46 +141,55 @@ const AddChild = () => {
       </Picker>
 
       {/* Height Input */}
-      <Text className='mb-1'>Height (cm)</Text>
+      <Text className='mb-1 font-semibold'>Height (cm)</Text>
       <TextInput
         placeholder="Enter Height in cm"
         value={height}
         onChangeText={setHeight}
         keyboardType="numeric"
-        className='border p-2 mb-4'
+        className='border border-gray-400 p-3 mb-8 rounded'
+        placeholderTextColor="#888"
       />
 
       {/* Weight Input */}
-      <Text className='mb-1'>Weight (kg)</Text>
+      <Text className='mb-1 font-semibold'>Weight (kg)</Text>
       <TextInput
         placeholder="Enter Weight in kg"
         value={weight}
         onChangeText={setWeight}
         keyboardType="numeric"
-        className='border p-2 mb-4'
+        className='border border-gray-400 p-3 mb-8 rounded'
+        placeholderTextColor="#888"
       />
 
       {/* Head Circumference Input */}
-      <Text className='mb-1'>Head Circumference (cm)</Text>
+      <Text className='mb-1 font-semibold'>Head Circumference (cm)</Text>
       <TextInput
         placeholder="Enter Head Circumference in cm"
         value={headCircumference}
         onChangeText={setHeadCircumference}
         keyboardType="numeric"
-        className='border p-2 mb-4'
+        className='border border-gray-400 p-3 mb-8 rounded'
+        placeholderTextColor="#888"
       />
 
       {/* Location Input */}
-      <Text className='mb-1'>Location</Text>
+      <Text className='mb-1 font-semibold'>Location</Text>
       <TextInput
         placeholder="Enter Location"
         value={location}
         onChangeText={setLocation}
-        className='border p-2 mb-4'
+        className='border border-gray-400 p-3 mb-8 rounded'
+        placeholderTextColor="#888"
       />
 
       {/* Add Child Button */}
-      <Button title="Add Child" onPress={handleAddChild} />
+      <TouchableOpacity 
+        className='bg-blue-200 p-3 rounded mb-5'
+        onPress={handleAddChild}
+      >
+        <Text className='text-center text-blue-800 font-semibold mt-2 mb-2'>Add Child</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

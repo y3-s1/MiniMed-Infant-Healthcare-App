@@ -63,7 +63,7 @@ const ChildList = () => {
   }, []);
 
   return (
-    <View className="flex-1 bg-gray-100 p-4">
+    <View className="flex-1 p-4">
       {/* Children Section */}
       <Text className="text-lg font-semibold mb-2">Children List</Text>
       <FlatList
@@ -88,8 +88,7 @@ const ChildList = () => {
               </Text>
             </View>
 
-            {/* Icon */}
-            <Ionicons name="person" size={24} color="black" />
+            
           </View>
         )}
       />
