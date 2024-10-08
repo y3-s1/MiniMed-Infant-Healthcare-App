@@ -37,9 +37,7 @@ export default function Tab() {
       <Stack.Screen
         name="ChildMonitor"
         component={ChildMonitor}
-        options={({ route }) => ({ 
-          title: `Monitor: ${route.params.childName}` 
-        })}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

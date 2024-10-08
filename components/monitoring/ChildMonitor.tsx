@@ -23,8 +23,8 @@ const ChildMonitor: React.FC<Props> = ({ route }) => {
     <View className="flex-1">
       <Childmonitorheader />
       <ScrollView className="flex-1 px-4 pt-4">
-        <Text className="text-lg font-semibold mb-4">Monitor: {childName}</Text>
-        <Text>Child ID: {childId}</Text>
+        <Text className="text-lg font-semibold mb-4">Monitoring {childName}</Text>
+        {/*<Text>Child ID: {childId}</Text>*/}
         {/* Add more monitoring details and functionality here */}
       </ScrollView>
     </View>
