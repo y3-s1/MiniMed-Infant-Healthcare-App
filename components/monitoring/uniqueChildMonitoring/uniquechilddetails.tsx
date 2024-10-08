@@ -12,6 +12,28 @@ type UniqueChildDetailsProps = {
   onDeleteChild: (childId: string) => void; // Prop to handle delete
 };
 
+const calculateAge = (birthday: string): string => {
+    const birthDate = new Date(birthday);
+    const today = new Date();
+  
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    let days = today.getDate() - birthDate.getDate();
+  
+    // Adjust for cases where the birth day or month hasn't occurred yet this year/month
+    if (days < 0) {
+      months--;
+      days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+    }
+  
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+  
+    return `${years} years, ${months} months, ${days} days`;
+  };
+
 const UniqueChildDetails: React.FC<UniqueChildDetailsProps> = ({
   childId,
   childName,
@@ -48,7 +70,7 @@ const UniqueChildDetails: React.FC<UniqueChildDetailsProps> = ({
         <Text className="text-3xl font-bold text-blue-500">{childName}</Text>
       </Text>
       <Text className="text-lg font-semibold mb-1 text-gray-600">
-        Age: <Text className="font-bold text-blue-500">{birthday}</Text>
+        Age: <Text className="font-bold text-blue-500">{calculateAge(birthday)}</Text>
       </Text>
       <Text className="text-lg font-semibold mb-1 text-gray-600">
         Gender: <Text className="font-bold text-blue-500">{gender}</Text>
