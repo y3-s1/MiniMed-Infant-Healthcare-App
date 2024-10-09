@@ -2,10 +2,15 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Feather from '@expo/vector-icons/Feather';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function TabLayout() {
+
   return (
+    <AuthGuard>
+    
     <Tabs screenOptions={{ tabBarActiveTintColor: '#2896B5' }}>
       <Tabs.Screen
         name="index"
@@ -19,7 +24,7 @@ export default function TabLayout() {
         options={{
           title: 'Vaccination',
           tabBarIcon: ({ color }) => <MaterialIcons name="vaccines" size={24} color={color} />,
-          headerShown:false
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -27,7 +32,7 @@ export default function TabLayout() {
         options={{
           title: 'Appointments',
           tabBarIcon: ({ color }) => <FontAwesome5 name="tasks" size={24} color={color} />,
-          headerShown:false
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -37,6 +42,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Feather name="calendar" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
+        }}
+      />
     </Tabs>
+    </AuthGuard>
   );
 }
