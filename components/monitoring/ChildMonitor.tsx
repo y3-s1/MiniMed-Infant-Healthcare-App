@@ -10,7 +10,7 @@ import UpdateMetrics from './uniqueChildMonitoring/updatemetrics';
 
 type RootStackParamList = {
   ChildMonitor: { childId: string; childName: string };
-  Home: undefined; // Define Home without parameters
+  Home: undefined;
 };
 
 type ChildMonitorRouteProp = RouteProp<RootStackParamList, 'ChildMonitor'>;
@@ -21,12 +21,21 @@ type Props = {
   navigation: ChildMonitorNavigationProp;
 };
 
+interface ChildDetails {
+  birthday: string;
+  gender: string;
+  measurements: {
+    heightHistory: Array<{ value: string, date: string }>;
+    weightHistory: Array<{ value: string, date: string }>;
+    headCircumferenceHistory: Array<{ value: string, date: string }>;
+  };
+}
+
 const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
   const { childId, childName } = route.params;
 
-  // State to store child details
-  const [childDetails, setChildDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(true); // State for loading indicator
+  const [childDetails, setChildDetails] = useState<ChildDetails | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('Childdetails');
 
   useEffect(() => {
@@ -36,44 +45,61 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
       const childSnap = await getDoc(childRef);
 
       if (childSnap.exists()) {
-        setChildDetails(childSnap.data());
+        setChildDetails(childSnap.data() as ChildDetails);
       } else {
         console.log('No such document!');
       }
-      setLoading(false); // Stop loading
+      setLoading(false);
     };
 
     fetchChildDetails();
   }, [childId]);
 
-  // Function to handle metrics update
-  const handleUpdateMetrics = async (newMetrics: { height: string; weight: string; headCircumference: string }) => {
+  const handleUpdateMetrics = async (newMetrics: { 
+    height: { value: string, date: string },
+    weight: { value: string, date: string },
+    headCircumference: { value: string, date: string }
+  }) => {
     const db = getFirestore();
     const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
 
     try {
       // Update the metrics in Firestore
       await updateDoc(childRef, {
-        'measurements.heightHistory': [...(childDetails.measurements?.heightHistory || []), { value: newMetrics.height }],
-        'measurements.weightHistory': [...(childDetails.measurements?.weightHistory || []), { value: newMetrics.weight }],
-        'measurements.headCircumferenceHistory': [...(childDetails.measurements?.headCircumferenceHistory || []), { value: newMetrics.headCircumference }],
+        'measurements.heightHistory': [...(childDetails?.measurements.heightHistory || []), newMetrics.height],
+        'measurements.weightHistory': [...(childDetails?.measurements.weightHistory || []), newMetrics.weight],
+        'measurements.headCircumferenceHistory': [...(childDetails?.measurements.headCircumferenceHistory || []), newMetrics.headCircumference],
       });
       Alert.alert('Success', 'Metrics updated successfully!');
+      
+      // Update local state
+      setChildDetails(prevDetails => {
+        if (prevDetails) {
+          return {
+            ...prevDetails,
+            measurements: {
+              heightHistory: [...prevDetails.measurements.heightHistory, newMetrics.height],
+              weightHistory: [...prevDetails.measurements.weightHistory, newMetrics.weight],
+              headCircumferenceHistory: [...prevDetails.measurements.headCircumferenceHistory, newMetrics.headCircumference],
+            }
+          };
+        }
+        return prevDetails;
+      });
     } catch (error) {
       Alert.alert('Error', 'Failed to update metrics. Please try again.');
       console.error('Error updating metrics:', error);
     }
   };
 
-  // Function to handle deleting the child
   const handleDeleteChild = async (childId: string) => {
     const db = getFirestore();
     const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
 
     try {
-      await deleteDoc(childRef); // Delete the child document from Firestore
+      await deleteDoc(childRef);
       Alert.alert('Success', 'Child deleted successfully!');
-      // navigation.navigate('Home'); // Remove this line to stop navigating to home
+      navigation.goBack(); // Navigate back to the previous screen
     } catch (error) {
       Alert.alert('Error', 'Failed to delete child. Please try again.');
       console.error('Error deleting child:', error);
@@ -81,32 +107,33 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />; // Loading indicator
+    return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
-  // Get the latest metrics
-  const latestHeight = childDetails?.measurements?.heightHistory?.slice(-1)[0]?.value || 'N/A';
-  const latestWeight = childDetails?.measurements?.weightHistory?.slice(-1)[0]?.value || 'N/A';
-  const latestHeadCircumference = childDetails?.measurements?.headCircumferenceHistory?.slice(-1)[0]?.value || 'N/A';
+  const getLatestMetric = (history: Array<{ value: string, date: string }> | undefined) => {
+    if (!history || history.length === 0) return 0; // Return 0 instead of 'N/A'
+    return parseFloat(history[history.length - 1].value) || 0; // Parse to number, default to 0 if parsing fails
+  };
+
+  const latestHeight = getLatestMetric(childDetails?.measurements.heightHistory);
+  const latestWeight = getLatestMetric(childDetails?.measurements.weightHistory);
+  const latestHeadCircumference = getLatestMetric(childDetails?.measurements.headCircumferenceHistory);
 
   return (
     <View className="flex-1">
-      {/* Header with tabs */}
       <Childmonitorheader selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
 
-      {/* Scrollable content */}
       <ScrollView className="flex-1 px-4 pt-4">
-        {/* Conditionally render content based on selected tab */}
         {selectedTab === 'Childdetails' && childDetails && (
           <UniqueChildDetails 
             childId={childId}
             childName={childName}
             birthday={childDetails.birthday}
             gender={childDetails.gender}
-            height={latestHeight} // Use the latest height
-            weight={latestWeight} // Use the latest weight
-            headCircumference={latestHeadCircumference} // Use the latest head circumference
-            onDeleteChild={handleDeleteChild} // Pass the delete function
+            height={latestHeight}
+            weight={latestWeight}
+            headCircumference={latestHeadCircumference}
+            onDeleteChild={handleDeleteChild}
           />
         )}
 
@@ -118,7 +145,7 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
           <UpdateMetrics 
             childId={childId} 
             childName={childName} 
-            onUpdateMetrics={handleUpdateMetrics} // Pass the update function
+            onUpdateMetrics={handleUpdateMetrics}
           />
         )}
       </ScrollView>

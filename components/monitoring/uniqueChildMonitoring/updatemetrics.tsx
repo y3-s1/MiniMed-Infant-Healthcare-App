@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity } from 'react-native';
 
 type UpdateMetricsProps = {
   childId: string;
   childName: string;
-  onUpdateMetrics: (newMetrics: { height: string; weight: string; headCircumference: string }) => void;
+  onUpdateMetrics: (newMetrics: { 
+    height: { value: string, date: string },
+    weight: { value: string, date: string },
+    headCircumference: { value: string, date: string }
+  }) => void;
 };
 
 const UpdateMetrics: React.FC<UpdateMetricsProps> = ({ childId, childName, onUpdateMetrics }) => {
@@ -19,8 +23,14 @@ const UpdateMetrics: React.FC<UpdateMetricsProps> = ({ childId, childName, onUpd
       return;
     }
 
-    // Call the onUpdateMetrics function passed as prop
-    onUpdateMetrics({ height, weight, headCircumference });
+    const currentDate = new Date().toISOString();
+
+    // Call the onUpdateMetrics function passed as prop with new format including timestamps
+    onUpdateMetrics({
+      height: { value: height, date: currentDate },
+      weight: { value: weight, date: currentDate },
+      headCircumference: { value: headCircumference, date: currentDate }
+    });
 
     // Clear input fields after submission
     setHeight('');
@@ -30,8 +40,7 @@ const UpdateMetrics: React.FC<UpdateMetricsProps> = ({ childId, childName, onUpd
 
   return (
     <View style={{ padding: 16 }}>
-
-        <Text className='text-2xl mb-8 font-semibold'>Update Growth Metrics</Text>
+      <Text className='text-2xl mb-8 font-semibold'>Update Growth Metrics</Text>
       
       <Text className='mb-2 font-semibold'>Update Height:</Text>
       <TextInput
