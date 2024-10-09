@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store'
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
 import { ActivityIndicator, View } from 'react-native';
+import { UserProvider } from '@/contexts/userContext';
 
 export default function RootLayout() {
   
@@ -20,8 +21,10 @@ export default function RootLayout() {
   }
 
   return (
+    <UserProvider>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      </UserProvider>
   );
 }
