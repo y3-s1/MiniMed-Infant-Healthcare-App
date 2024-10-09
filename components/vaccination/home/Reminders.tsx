@@ -2,7 +2,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, TextIn
 import React, { useState, useEffect } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons'; // Import SimpleLineIcons
-import { collection, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc } from 'firebase/firestore';
 import { db } from '../../../config/FireBaseConfig'; // Import your Firestore config
 
 interface Reminder {
@@ -29,16 +29,19 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
     try {
       // Query the VaccinationSessions collection where the selectedParticipants array contains the loggedChildId
       const vaccinationSessionsQuery = query(
-        collection(db, 'VaccinationSessions'),
-        where('selectedParticipants', 'array-contains', 'child_4')
+        collection(db, 'Midwives', 'DZ3G0ZOnt8KzFRD3MI02', 'VaccinationSessions'),
+        where('selectedParticipants', 'array-contains', 'child_2')
       );
       const querySnapshot = await getDocs(vaccinationSessionsQuery);
 
       const fetchedReminders: Reminder[] = [];
 
+      console.log('querySnapshot.docs', querySnapshot.docs)
       // Loop through each VaccinationSession document
       for (const docSnapshot of querySnapshot.docs) {
         const data = docSnapshot.data();
+
+        console.log('data', docSnapshot.id)
 
         // Fetch the corresponding vaccine name from VaccinationSchedules collection using selectedVaccine ID
         const vaccineDocRef = doc(db, 'VaccinationSchedules', data.selectedVaccine);
@@ -78,10 +81,13 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
   // Function to save the confirmed vaccination record
   const handleConfirmComing = async () => {
     if (!selectedReminder) return;
-
-    const childDocRef = doc(db, "Users", "2DaIkDN1VUuNGk199UBJ", "Childrens", 'child_4', "VaccinationRecords", selectedReminder.id);
-
+  
+    // Create a reference to the main VaccinationRecords collection
+    const vaccinationRecordsCollectionRef = collection(db, "VaccinationRecords");
+  
     const newVaccinationRecord = {
+      UserId: '2DaIkDN1VUuNGk199UBJ', // Replace with dynamic User ID if available
+      childId: 'child_4', // Replace with dynamic Child ID if available
       administeredDate: null,
       scheduledDate: selectedReminder.date,
       sideEffects: [],
@@ -91,10 +97,10 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
       vaccineName: selectedReminder.vaccine,
       vaccinationSessionId: selectedReminder.id, // Store the session ID for reference
     };
-
+  
     try {
-      // Save to Firestore
-      await setDoc(childDocRef, newVaccinationRecord);
+      // Add a new document with an auto-generated ID in the VaccinationRecords collection
+      await addDoc(vaccinationRecordsCollectionRef, newVaccinationRecord);
       setModalVisible(false);
       Alert.alert('Confirmed', 'You have confirmed your attendance.');
     } catch (error) {
@@ -109,35 +115,39 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
 
   // Function to save the rescheduled vaccination record
   const handleSubmitReschedule = async () => {
-    if (!selectedReminder || rescheduleReason.trim() === '') {
-      Alert.alert('Error', 'Please provide a reason for rescheduling.');
-      return;
-    }
+  if (!selectedReminder || rescheduleReason.trim() === '') {
+    Alert.alert('Error', 'Please provide a reason for rescheduling.');
+    return;
+  }
 
-    const childDocRef = doc(db, "Users", "2DaIkDN1VUuNGk199UBJ", "Childrens", 'child_4', "VaccinationRecords", selectedReminder.id);
+  // Create a reference to the main VaccinationRecords collection
+  const vaccinationRecordsCollectionRef = collection(db, "VaccinationRecords");
 
-    const rescheduledVaccinationRecord = {
-      administeredDate: null,
-      scheduledDate: selectedReminder.date, // From the vaccination session
-      sideEffects: [],
-      status: "Rescheduled", // Updated status
-      rescheduleReason: rescheduleReason, // Fill with the typed reason
-      vaccineId: selectedReminder.vaccineId,
-      vaccineName: selectedReminder.vaccine,
-      vaccinationSessionId: selectedReminder.id, // Store the session ID for reference
-    };
-
-    try {
-      // Save to Firestore
-      await setDoc(childDocRef, rescheduledVaccinationRecord);
-      setModalVisible(false);
-      setRescheduleReason(''); // Reset the reason after submission
-      Alert.alert('Reschedule Submitted', 'You have submitted a reschedule request.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit reschedule.');
-      console.error('Error saving rescheduled record:', error);
-    }
+  const rescheduledVaccinationRecord = {
+    UserId: '2DaIkDN1VUuNGk199UBJ', // Replace with dynamic User ID if available
+    childId: 'child_4', // Replace with dynamic Child ID if available
+    administeredDate: null,
+    scheduledDate: selectedReminder.date, // From the vaccination session
+    sideEffects: [],
+    status: "Rescheduled", // Updated status
+    rescheduleReason: rescheduleReason, // Fill with the typed reason
+    vaccineId: selectedReminder.vaccineId,
+    vaccineName: selectedReminder.vaccine,
+    vaccinationSessionId: selectedReminder.id, // Store the session ID for reference
   };
+
+  try {
+    // Add a new document with an auto-generated ID in the VaccinationRecords collection
+    await addDoc(vaccinationRecordsCollectionRef, rescheduledVaccinationRecord);
+    setModalVisible(false);
+    setRescheduleReason(''); // Reset the reason after submission
+    Alert.alert('Reschedule Submitted', 'You have submitted a reschedule request.');
+  } catch (error) {
+    Alert.alert('Error', 'Failed to submit reschedule.');
+    console.error('Error saving rescheduled record:', error);
+  }
+};
+
 
   if (loading) {
     return <Text>Loading reminders...</Text>;

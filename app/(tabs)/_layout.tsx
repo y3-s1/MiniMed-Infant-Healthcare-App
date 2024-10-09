@@ -3,16 +3,14 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Feather from '@expo/vector-icons/Feather';
 import { Redirect, Tabs } from 'expo-router';
-import { SignedIn, useAuth } from '@clerk/clerk-expo';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function TabLayout() {
-  // const { isSignedIn } = useAuth();
-
-  // if (!isSignedIn) {
-  //   return <Redirect href="/login/sign-in" />;
-  // }
 
   return (
+    <AuthGuard>
+    
     <Tabs screenOptions={{ tabBarActiveTintColor: '#2896B5' }}>
       <Tabs.Screen
         name="index"
@@ -44,6 +42,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Feather name="calendar" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
+        }}
+      />
     </Tabs>
+    </AuthGuard>
   );
 }
