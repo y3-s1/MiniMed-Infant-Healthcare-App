@@ -12,6 +12,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <FontAwesome size={28} name="home" color={color} />,
+          headerShown:false
         }}
       />
       <Tabs.Screen
@@ -35,6 +36,7 @@ export default function TabLayout() {
         options={{
           title: 'Events',
           tabBarIcon: ({ color }) => <Feather name="calendar" size={24} color={color} />,
+          headerShown:false
         }}
       />
     </Tabs>
