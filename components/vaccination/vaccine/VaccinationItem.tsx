@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, FlatList, Image, Pressable } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, where, query } from "firebase/firestore";
 import { db } from '../../../config/FireBaseConfig';
 import { router } from 'expo-router';
 
@@ -10,6 +10,7 @@ interface VaccinationItem {
   name: string;
   age: string;
   image: string;
+  nationalHealthGuidelines: string;
   status: 'Completed' | 'Scheduled' | 'pending';
 }
 
@@ -21,12 +22,13 @@ const StepIndicator = ({ index, status }: { index: number, status: 'Completed' |
   return (
     <View className='items-center'>
       {/* Step Number */}
-      <View className={`w-8 h-8  rounded-full items-center justify-center ${isCompleted ? 'bg-slate-600' : 'bg-gray-300'}`}>
+      <View className={`w-0.5 flex-1 ${isCompleted ? 'bg-slate-600' : 'bg-gray-300'}`} />
+      <View className={`w-6 h-6  rounded-full items-center justify-center ${isCompleted ? 'bg-slate-600' : 'bg-gray-300'}`}>
         <Text className='text-white font-bold'>{index}</Text>
       </View>
 
-      {/* Line between steps */}
       <View className={`w-0.5 flex-1 ${isCompleted ? 'bg-slate-600' : 'bg-gray-300'}`} />
+      {/* Line between steps */}
     </View>
   );
 };
@@ -56,24 +58,63 @@ const VaccinationTab = () => {
         ...doc.data() 
       }));
       // Fetch the vaccination record of a specific child (example childId)
-      const childDoc = await getDocs(collection(db, "Users", "ZVRLK2MapOWefe2BYC1L", "Childrens", "ChildID_abc", "VaccinationRecords"));
+      const vaccinationRecordsRef = collection(db, 'VaccinationRecords');
+
+  // Create the query with multiple filters: userId, childId, and vaccineId
+      const vaccinationRecordsQuery = query(
+        vaccinationRecordsRef,
+        where('UserId', '==', '2DaIkDN1VUuNGk199UBJ'),
+        where('childId', '==', 'Child_2'),
+      );
+
+      const childDoc = await getDocs(vaccinationRecordsQuery);
       const childData = childDoc.docs.map(doc => doc.data());
 
       // Merge data from vaccinationSchedule and child vaccinationRecord
       const mergedData = scheduleData.map((vaccine) => {
-        const record = childData.find((rec) => rec.vaccineId === vaccine.id);
-
-        console.log(record)
-        console.log(vaccine)
+        console.log('scheduledData', scheduleData);
+      
+        // Use filter to find all matching records from childData
+        const matchingRecords = childData.filter((rec) => {
+          console.log('first', rec.vaccineId, 'second', vaccine.id);
+          return rec.vaccineId === vaccine.id;  // Find matching vaccine records
+        });
+      
+        console.log('matching records for', vaccine.vaccineName, matchingRecords);
+      
+        // Determine the status based on the matching records
+        let status = 'Pending';  // Default to 'Pending'
+      
+        if (matchingRecords.length > 0) {
+          // First, check if there are any records with a status of 'Completed'
+          const completedRecord = matchingRecords.find(record => record.status === 'Completed');
+          
+          if (completedRecord) {
+            status = 'Completed';  // Set to 'Completed' if any matching record is completed
+          } else {
+            // If no record is 'Completed', check for 'Scheduled' and leave unchanged if true
+            const scheduledRecord = matchingRecords.find(record => record.status === 'Scheduled');
+            if (scheduledRecord) {
+              status = 'Scheduled';  // Keep 'Scheduled' status as is
+            } else {
+              // Otherwise, use the status of the first matching record
+              status = matchingRecords[0].status;
+            }
+          }
+        }
+      
         return {
           id: vaccine.id,
           name: vaccine.vaccineName,
           age: vaccine.ageDue,
           image: vaccine.imageUrl,
-          status: record ? record.status : 'Pending',  // If no record, consider it pending
+          nationalHealthGuidelines: vaccine.nationalHealthGuidelines,
+          status: status,  // Status is either 'Completed', 'Scheduled', or 'Pending'
+          matchingRecords: matchingRecords // Optionally return the matching records for reference
         };
       });
 
+      console.log('mergedData', mergedData)
       setVaccinations(mergedData);
     } catch (error) {
       console.error("Error fetching vaccination data:", error);
@@ -105,15 +146,13 @@ const VaccinationTab = () => {
 
       {/* Vaccination Info */}
       <View className='flex-1 bg-white p-3 ml-4 rounded-xl flex-row'>
-      <Image className='w-8 h-12 rounded' source={{ uri:item?.image }}/>
+      <Image className='w-14 h-14 rounded' source={{ uri:item?.image }}/>
       {/* <Ionicons name='medkit-outline' size={25} color='black' /> */}
       <View className='ml-4'>
-        <Text className='font-normal text-slate-400'>{item.age}</Text>
         <Text className='text-xl'>{item.name}</Text>
+        <Text className='font-normal text-slate-400'>{item.age}</Text>
+        <Text className='font-normal text-slate-400'>{item.nationalHealthGuidelines}</Text>
       </View>
-      <TouchableOpacity className='ml-auto bg-cyan-400 p-1 h-10 w-12 rounded-xl'>
-        <Text className='text-white font-semibold m-auto'>View</Text>
-      </TouchableOpacity>
     </View>
 
     </Pressable>
@@ -127,24 +166,24 @@ const VaccinationTab = () => {
   return (
     <View className='flex-1 bg-gray-100'>
       {/* Tabs */}
-      <View className='flex-row justify-center mt-1'>
+      <View className='flex-row justify-start mt-1 mb-4'>
         <TouchableOpacity
           onPress={() => setSelectedTab('All')}
-          className={`px-6 py-2 ${selectedTab === 'All' ? 'border-b-4 border-blue-500' : ''}`}
+          className={`px-3 py-2 ${selectedTab === 'All' ? 'border-b-4 border-blue-500' : ''}`}
         >
           <Text className={`${selectedTab === 'All' ? 'text-blue-500' : 'text-gray-500'} text-lg`}>All</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setSelectedTab('Completed')}
-          className={`px-6 py-2 ${selectedTab === 'Completed' ? 'border-b-4 border-blue-500' : ''}`}
+          className={`px-3 py-2 ${selectedTab === 'Completed' ? 'border-b-4 border-blue-500' : ''}`}
         >
           <Text className={`${selectedTab === 'Completed' ? 'text-blue-500' : 'text-gray-500'} text-lg`}>Completed</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => setSelectedTab('Scheduled')}
-          className={`px-6 py-2 ${selectedTab === 'Scheduled' ? 'border-b-4 border-blue-500' : ''}`}
+          className={`px-3 py-2 ${selectedTab === 'Scheduled' ? 'border-b-4 border-blue-500' : ''}`}
         >
           <Text className={`${selectedTab === 'Scheduled' ? 'text-blue-500' : 'text-gray-500'} text-lg`}>Scheduled</Text>
         </TouchableOpacity>
