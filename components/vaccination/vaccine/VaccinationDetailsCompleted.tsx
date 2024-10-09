@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 import { useNavigation } from 'expo-router';
 
@@ -8,7 +8,7 @@ interface VaccinationDetailCompleteProps {
   vaccine: any; // Replace 'any' with a more specific type if needed
 }
 
-const VaccinationDetailsCompleted: React.FC<VaccinationDetailCompleteProps> = ({ vaccine }) => {
+  const VaccinationDetailsCompleted: React.FC<VaccinationDetailCompleteProps> = ({ vaccine }) => {
   const [vaccineDetails, setVaccineDetails] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTab, setSelectedTab] = useState<number>(0); // Custom tab index
@@ -32,18 +32,23 @@ const VaccinationDetailsCompleted: React.FC<VaccinationDetailCompleteProps> = ({
       const docSnap = await getDoc(doc(db, 'VaccinationSchedules', vaccine));
       const data = docSnap.data();
 
-      const childDoc = await getDoc(
-        doc(
-          db,
-          'Users',
-          'ZVRLK2MapOWefe2BYC1L',
-          'Childrens',
-          'ChildID_abc',
-          'VaccinationRecords',
-          'Atxeain5XUvZV4uFjV09'
-        )
+      const vaccinationRecordsRef = collection(db, 'VaccinationRecords');
+
+  // Create the query with multiple filters: userId, childId, and vaccineId
+      const vaccinationRecordsQuery = query(
+        vaccinationRecordsRef,
+        where('UserId', '==', '2DaIkDN1VUuNGk199UBJ'),
+        where('childId', '==', 'child_4'),
+        where('vaccineId', '==', vaccine)
       );
-      const childData = childDoc.data();
+
+      console.log('vaccine', vaccine)
+
+      const childDoc = await getDocs(vaccinationRecordsQuery);
+
+      const childData = childDoc.docs;
+
+      console.log('childData', childData)
 
       setVaccineDetails({
         ...data,

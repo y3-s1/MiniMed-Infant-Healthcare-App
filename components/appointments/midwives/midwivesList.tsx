@@ -1,78 +1,88 @@
-import React from 'react';
-import { View, Text, FlatList, Image, StyleSheet, Dimensions } from 'react-native';
-import { Button } from '@rneui/themed'; // Import the Button component from RNE
+// midwivesList.tsx
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { db } from '@/config/FireBaseConfig';  // Import your Firebase config
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { router } from 'expo-router';
 
-// Define prop types
 interface MidwivesListProps {
   searchQuery: string;
 }
 
-// Mock midwives data
-const midwivesData = [
-  {
-    id: '1',
-    name: 'Alice Smith',
-    location: 'New York',
-    experience: '5 years',
-    image: 'https://via.placeholder.com/100', // Replace with actual image URL
-  },
-  {
-    id: '2',
-    name: 'Megan Johnson',
-    location: 'Los Angeles',
-    experience: '7 years',
-    image: 'https://via.placeholder.com/100',
-  },
-  {
-    id: '3',
-    name: 'Sophia Brown',
-    location: 'Chicago',
-    experience: '3 years',
-    image: 'https://via.placeholder.com/100',
-  },
-  {
-    id: '4',
-    name: 'Emily Davis',
-    location: 'Houston',
-    experience: '6 years',
-    image: 'https://via.placeholder.com/100',
-  },
-];
+interface Midwife {
+  id: string;
+  name: string;
+  location: string;
+  joinedDate: string; // Add joinedDate field for experience calculation
+  image: string;
+}
 
 const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
-  // Filter midwives based on search query
-  const filteredMidwives = midwivesData.filter(midwife =>
+  const [midwives, setMidwives] = useState<Midwife[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch midwives data from Firebase
+    const fetchMidwives = async () => {
+      try {
+        const midwivesSnapshot = await getDocs(collection(db, 'Midwives'));
+        const midwivesList: Midwife[] = midwivesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            location: data.location,
+            joinedDate: data.joinedDate, // Include joinedDate
+            image: data.image,
+          };
+        });
+        setMidwives(midwivesList);
+      } catch (error) {
+        console.error('Error fetching midwives:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMidwives();
+  }, []);
+
+  const calculateExperience = (joinedDate: string) => {
+    const joined = new Date(joinedDate);
+    const currentDate = new Date();
+    const experience = currentDate.getFullYear() - joined.getFullYear();
+    return experience >= 0 ? experience : 0;
+  };
+
+  const filteredMidwives = midwives.filter((midwife) =>
     midwife.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Function to handle booking
-  const handleBooking = (midwifeName: string) => {
-    console.log(`Booking midwife: ${midwifeName}`);
-    // Add booking logic here (e.g., navigate to booking page)
-  };
-
   return (
     <View style={styles.container}>
-      {filteredMidwives.length > 0 ? (
+      {loading ? (
+        <Text>Loading midwives data...</Text>
+      ) : filteredMidwives.length > 0 ? (
         <FlatList
-        style={{ height: Dimensions.get('window').height / 2 }} // Ensure FlatList has a defined height
-        data={filteredMidwives}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.midwifeCard}>
-            {/* Midwife Image */}
-            <Image source={{ uri: item.image }} style={styles.midwifeImage} />
-      
-            {/* Midwife Details */}
-            <View style={styles.midwifeDetails}>
-              <Text style={styles.midwifeName}>{item.name}</Text>
-              <Text style={styles.midwifeInfo}>Location: {item.location}</Text>
-              <Text style={styles.midwifeInfo}>Experience: {item.experience}</Text>
-            </View>
-          </View>
-        )}
-        showsVerticalScrollIndicator={false}  // Hide the scroll bar
-      />      
+          data={filteredMidwives}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={styles.midwifeCard}
+              onPress={() => router.navigate({
+                pathname: '/appointments/midwives/midwifeProfile',
+                params: { midwifeId: item.id },  
+              })}
+            >
+              <Image source={{ uri: item.image }} style={styles.midwifeImage} />
+              <View style={styles.midwifeDetails}>
+                <Text style={styles.midwifeName}>{item.name}</Text>
+                <Text style={styles.midwifeInfo}>Location: {item.location}</Text>
+                <Text style={styles.midwifeInfo}>Experience: {calculateExperience(item.joinedDate)}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       ) : (
         <Text style={styles.noResultsText}>No midwives found.</Text>
       )}
@@ -83,9 +93,10 @@ const MidwivesList: React.FC<MidwivesListProps> = ({ searchQuery }) => {
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+    marginBottom: 100,
   },
   midwifeCard: {
-    flexDirection: 'row',  // Align image and details horizontally
+    flexDirection: 'row',
     backgroundColor: '#fff',
     padding: 15,
     marginBottom: 10,
@@ -94,16 +105,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,  // For Android shadow
+    elevation: 2,
   },
   midwifeImage: {
     width: 80,
     height: 80,
-    borderRadius: 40,  // Circular image
-    marginRight: 15,  // Add some space between the image and the text
+    borderRadius: 40,
+    marginRight: 15,
   },
   midwifeDetails: {
-    flex: 1,  // Take up remaining space
+    flex: 1,
     justifyContent: 'center',
   },
   midwifeName: {
@@ -115,12 +126,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 5,
-  },
-  bookButton: {
-    backgroundColor: '#007bff',  // Blue button color
-    borderRadius: 20,  // Rounded button
-    paddingHorizontal: 20,  // Add padding to the button horizontally
-    paddingVertical: 10,
   },
   noResultsText: {
     fontSize: 16,
