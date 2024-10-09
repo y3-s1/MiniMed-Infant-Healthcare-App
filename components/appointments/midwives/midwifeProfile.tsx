@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, VirtualizedList } from
 import { db } from '@/config/FireBaseConfig';  // Firebase configuration
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 interface MidwifeProfileProps {
   midwifeId: string;
@@ -23,6 +24,8 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
   const [showFullDescription, setShowFullDescription] = useState<boolean>(false);  // State to manage full description view
   const [sessionType, setSessionType] = useState('Home Visit');
   const [selectedLocation, setSelectedLocation] = useState('Malabe');
+  const [midwifeSessions, setMidwifeSessions] = useState<any[]>([]);
+  const [filteredMidwifeSessions, setFilteredMidwifeSessions] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchMidwifeData = async () => {
@@ -33,11 +36,22 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
 
         if (midwifeSnapshot.exists()) {
           setMidwife(midwifeSnapshot.data());
+
+          // Fetch MidwifeSessions sub-collection
+          const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
+          const sessionSnapshot = await getDocs(sessionsCollectionRef);
+
+          // Map through the retrieved sessions and store them
+          const sessions = sessionSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setMidwifeSessions(sessions);
         } else {
           console.log('Midwife not found');
         }
       } catch (error) {
-        console.error('Error fetching midwife:', error);
+        console.error('Error fetching midwife or sessions:', error);
       } finally {
         setLoading(false);
       }
@@ -45,6 +59,18 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
 
     fetchMidwifeData();
   }, [midwifeId]);
+
+
+
+  useEffect(() => {
+    const filteredSessions = midwifeSessions.filter(
+      (session) => session.sessionType === sessionType && session.location === selectedLocation
+    );
+    setFilteredMidwifeSessions(filteredSessions);
+  }, [midwifeSessions, sessionType, selectedLocation]);
+  
+
+
 
   const locations = sessionType === 'Home Visit' ? areas : clinics;
   
@@ -82,6 +108,9 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
       
     );
   };
+
+
+
 
   if (loading) {
     return (
@@ -162,8 +191,18 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
       <LocationSelector />
 
       {/* Create Session Button */}
-      <TouchableOpacity className="bg-blue-500 p-4 rounded-lg mt-7 items-center mb-5">
-        <Text className="text-white text-lg">Create Session</Text>
+      <TouchableOpacity className="bg-blue-500 p-4 rounded-lg mt-7 items-center mb-5"
+        onPress={() => router.navigate({
+          pathname: '/appointments/midwives/addAppointment',
+          params: { 
+            midwifeId: midwifeId, 
+            sessionType: sessionType, 
+            selectedLocation: selectedLocation, 
+            filteredMidwifeSessions: JSON.stringify(filteredMidwifeSessions) // Convert to string 
+          },  
+        })}
+      >
+        <Text className="text-white text-lg">Search Availability</Text>
       </TouchableOpacity>
     </View>
   );
