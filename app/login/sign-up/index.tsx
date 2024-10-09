@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, Alert } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/FireBaseConfig';
+import { router } from 'expo-router';
 
 const SignUp: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -27,6 +28,8 @@ const SignUp: React.FC = () => {
         email,
         createdAt: new Date(),
       });
+
+      router.push('/login/sign-in');
 
       Alert.alert('Success', 'User registered and data saved!');
     } catch (error) {
