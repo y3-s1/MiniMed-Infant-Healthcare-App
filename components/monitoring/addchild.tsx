@@ -1,7 +1,8 @@
 import { View, Text, TextInput, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { getFirestore, collection, addDoc, doc } from 'firebase/firestore'; // Ensure you have firebase/firestore installed
 import { Picker } from '@react-native-picker/picker'; // Import Picker
+import { UserContext } from '@/contexts/userContext';
 
 const AddChild = () => {
   const [name, setName] = useState(''); // Name instead of firstname/lastname
@@ -11,7 +12,10 @@ const AddChild = () => {
   const [weight, setWeight] = useState(''); // Weight in kg
   const [headCircumference, setHeadCircumference] = useState(''); // Head circumference in cm
   const [location, setLocation] = useState(''); // New location state
-  const userId = '2DaIkDN1VUuNGk199UBJ'; // The fixed user ID for now
+  // const userId = '2DaIkDN1VUuNGk199UBJ'; // The fixed user ID for now
+  const { user } = useContext(UserContext);
+
+  const userId = user.uid;
 
   const handleAddChild = async () => {
     if (!name || !gender || !height || !weight || !headCircumference || !location) {

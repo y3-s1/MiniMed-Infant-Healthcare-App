@@ -1,9 +1,10 @@
 import { View, Text, FlatList, TouchableOpacity, Alert, Modal, Pressable, TextInput } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons'; // Import SimpleLineIcons
-import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../../../config/FireBaseConfig'; // Import your Firestore config
+import { UserContext } from '@/contexts/userContext';
 
 interface Reminder {
   id: string;
@@ -21,6 +22,8 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
   const [isRescheduleMode, setIsRescheduleMode] = useState(false); // State to toggle reschedule view
   const [rescheduleReason, setRescheduleReason] = useState(''); // State to hold the reschedule reason
 
+  const { user, selectedChildId } = useContext(UserContext);
+
   useEffect(() => {
     fetchReminders();
   }, []);
@@ -29,8 +32,8 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
     try {
       // Query the VaccinationSessions collection where the selectedParticipants array contains the loggedChildId
       const vaccinationSessionsQuery = query(
-        collection(db, 'Midwives', 'DZ3G0ZOnt8KzFRD3MI02', 'VaccinationSessions'),
-        where('selectedParticipants', 'array-contains', 'child_2')
+        collectionGroup(db, 'VaccinationSessions'), // collectionGroup allows querying across all 'VaccinationSessions' subcollections
+        where('selectedParticipants', 'array-contains', selectedChildId)
       );
       const querySnapshot = await getDocs(vaccinationSessionsQuery);
 
@@ -86,8 +89,8 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
     const vaccinationRecordsCollectionRef = collection(db, "VaccinationRecords");
   
     const newVaccinationRecord = {
-      UserId: '2DaIkDN1VUuNGk199UBJ', // Replace with dynamic User ID if available
-      childId: 'child_4', // Replace with dynamic Child ID if available
+      UserId: user.uid, // Replace with dynamic User ID if available
+      childId: selectedChildId, // Replace with dynamic Child ID if available
       administeredDate: null,
       scheduledDate: selectedReminder.date,
       sideEffects: [],
@@ -124,8 +127,8 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
   const vaccinationRecordsCollectionRef = collection(db, "VaccinationRecords");
 
   const rescheduledVaccinationRecord = {
-    UserId: '2DaIkDN1VUuNGk199UBJ', // Replace with dynamic User ID if available
-    childId: 'child_4', // Replace with dynamic Child ID if available
+    UserId: user.uid, // Replace with dynamic User ID if available
+    childId: selectedChildId, // Replace with dynamic Child ID if available
     administeredDate: null,
     scheduledDate: selectedReminder.date, // From the vaccination session
     sideEffects: [],

@@ -1,8 +1,9 @@
 import { View, Text, Image, Button, StyleSheet, TouchableOpacity } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 import { useNavigation } from 'expo-router';
+import { UserContext } from '@/contexts/userContext';
 
 // Define the prop type for the vaccine details
 interface VaccinatonDetailProps {
@@ -21,6 +22,8 @@ const VaccinatonDetailAll: React.FC<VaccinatonDetailProps> = ({ vaccine }) => {
   const [vaccineDetails, setVaccineDetails] = useState<VaccineDetails | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const [showFullDescription, setShowFullDescription] = useState<boolean>(false);  // State to manage full description view
+
+  const { user, selectedSchilId } = useContext(UserContext);
 
   const navigation = useNavigation();
 

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 import { useNavigation } from 'expo-router';
+import { UserContext } from '@/contexts/userContext';
 
 interface VaccinationDetailCompleteProps {
   vaccine: any; // Replace 'any' with a more specific type if needed
@@ -13,6 +14,8 @@ interface VaccinationDetailCompleteProps {
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedTab, setSelectedTab] = useState<number>(0); // Custom tab index
   const [showFullDescription, setShowFullDescription] = useState<boolean>(false); // Track description state
+
+  const { user , selectedChildId } = useContext(UserContext);
 
   const navigation = useNavigation();
 
@@ -37,8 +40,8 @@ interface VaccinationDetailCompleteProps {
   // Create the query with multiple filters: userId, childId, and vaccineId
       const vaccinationRecordsQuery = query(
         vaccinationRecordsRef,
-        where('UserId', '==', '2DaIkDN1VUuNGk199UBJ'),
-        where('childId', '==', 'child_4'),
+        where('UserId', '==', user.uid),
+        where('childId', '==', selectedChildId),
         where('vaccineId', '==', vaccine)
       );
 

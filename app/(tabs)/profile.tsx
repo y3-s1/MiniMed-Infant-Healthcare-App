@@ -7,7 +7,7 @@ import { useContext } from 'react';
 
 export default function Tab() {
 
-    const { user } = useContext(UserContext);
+    const { user, selectedChildId } = useContext(UserContext);
 
     const handleSignOut = () => {
         signOut(auth)
@@ -24,6 +24,7 @@ export default function Tab() {
     <View style={styles.container}>
       <Text> Monitoring page</Text>
       <Text>User UID: {user ? user.uid : 'No user signed in'}</Text>
+      <Text>Child UID: {selectedChildId ? selectedChildId : 'No Child signed in'}</Text>
 
       <TouchableOpacity onPress={handleSignOut}>
         <Text>Logout</Text>

@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, FlatList, Image, Pressable } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, doc, getDoc, where, query } from "firebase/firestore";
 import { db } from '../../../config/FireBaseConfig';
 import { router } from 'expo-router';
+import { UserContext } from '@/contexts/userContext';
 
 interface VaccinationItem {
   id: string;
@@ -19,6 +20,7 @@ interface VaccinationItem {
 const StepIndicator = ({ index, status }: { index: number, status: 'Completed' | 'Scheduled' |'pending' }) => {
   const isCompleted = status === 'Completed';
 
+  
   return (
     <View className='items-center'>
       {/* Step Number */}
@@ -39,8 +41,9 @@ const VaccinationTab = () => {
   const [selectedTab, setSelectedTab] = useState<'All' | 'Completed' | 'Scheduled'>('All');
   const [vaccinations, setVaccinations] = useState<VaccinationItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
-
+  
+  const { user, selectedChildId } = useContext(UserContext);
+  
 
   useEffect(() => {
     fetchVaccinationData();
@@ -60,11 +63,12 @@ const VaccinationTab = () => {
       // Fetch the vaccination record of a specific child (example childId)
       const vaccinationRecordsRef = collection(db, 'VaccinationRecords');
 
+
   // Create the query with multiple filters: userId, childId, and vaccineId
       const vaccinationRecordsQuery = query(
         vaccinationRecordsRef,
-        where('UserId', '==', '2DaIkDN1VUuNGk199UBJ'),
-        where('childId', '==', 'Child_2'),
+        where('UserId', '==', user.uid),
+        where('childId', '==', selectedChildId),
       );
 
       const childDoc = await getDocs(vaccinationRecordsQuery);
