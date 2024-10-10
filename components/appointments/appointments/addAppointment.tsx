@@ -163,37 +163,38 @@ const AddAppointment: React.FC<AddAppointmentProps> = ({ sessions, midwifeId, se
     };
 
 
-    // Function to save the appointment data to Firestore under the midwife's sub-collection
+    // Function to save the appointment data to Firestore in a separate collection (MidwifeAppointments)
     const bookAppointment = async () => {
         try {
-        const midwifeDocRef = doc(db, 'Midwives', midwifeId);
-        const appointmentsCollectionRef = collection(midwifeDocRef, 'MidwifeAppointments');
+            const appointmentsCollectionRef = collection(db, 'MidwifeAppointments');
 
-        await addDoc(appointmentsCollectionRef, {
-            date:selectedDate,
-            timeSlot: selectedTimeSlot,
-            sessionType,
-            location:selectedLocation,
-            status: "booked",
-            user:userDocumentID,
-            child: childDocumentID,
-        });
-        Alert.alert('Success', 'Appointment created successfully!');
-        router.navigate({
-            pathname: '/appointments/midwives/appointmentSuccess',
-            params: { 
-                date:selectedDate,
+            await addDoc(appointmentsCollectionRef, {
+                midwifeId,  // Include midwife ID
+                date: selectedDate,
                 timeSlot: selectedTimeSlot,
                 sessionType,
-                location:selectedLocation,
+                location: selectedLocation,
                 status: "booked",
-                user:userDocumentID,
+                user: userDocumentID,
                 child: childDocumentID,
-             },  
-          });
+            });
+
+            Alert.alert('Success', 'Appointment created successfully!');
+            router.navigate({
+                pathname: '/appointments/midwives/appointmentSuccess',
+                params: {
+                    date: selectedDate,
+                    timeSlot: selectedTimeSlot,
+                    sessionType,
+                    location: selectedLocation,
+                    status: "booked",
+                    user: userDocumentID,
+                    child: childDocumentID,
+                },
+            });
         } catch (error) {
-        console.error('Error creating appointment:', error);
-        Alert.alert('Error', 'Failed to create appointment.');
+            console.error('Error creating appointment:', error);
+            Alert.alert('Error', 'Failed to create appointment.');
         }
     };
 
