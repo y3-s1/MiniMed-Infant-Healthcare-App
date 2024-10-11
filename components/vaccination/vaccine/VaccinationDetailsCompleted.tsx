@@ -4,6 +4,7 @@ import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firesto
 import { db } from '@/config/FireBaseConfig';
 import { useNavigation } from 'expo-router';
 import { UserContext } from '@/contexts/userContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface VaccinationDetailCompleteProps {
   vaccine: any; // Replace 'any' with a more specific type if needed
@@ -23,6 +24,17 @@ interface VaccinationDetailCompleteProps {
     navigation.setOptions({
       headerTransparent: true,
       headerTitle: '',
+      headerTintColor: '#fff',
+      headerLeft: () => (
+        <View style={{ marginLeft: 15, marginTop:15, backgroundColor: '#fff', padding: 5, borderRadius: 30 }}>
+          <Ionicons
+            name="arrow-back"
+            size={30}
+            color="#3b82f6" // Change the back arrow color
+            onPress={() => navigation.goBack()} // Back navigation action
+          />
+        </View>
+      ),
     });
 
     fetchVaccinationData();
