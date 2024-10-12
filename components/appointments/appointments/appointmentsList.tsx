@@ -1,6 +1,10 @@
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/config/FireBaseConfig';
+import { UserContext } from '@/contexts/userContext';
+import { router } from 'expo-router';
 
 interface AppointmentItem {
   id: string;
@@ -11,53 +15,9 @@ interface AppointmentItem {
   status: 'Scheduled' | 'Completed';
 }
 
-// Mock appointments data
-const appointmentsData: AppointmentItem[] = [
-  {
-    id: '1',
-    midwife: 'Alice Smith',
-    date: '2024-10-08',
-    location: 'New York',
-    time: '10:00 AM',
-    status: 'Scheduled',
-  },
-  {
-    id: '2',
-    midwife: 'Megan Johnson',
-    date: '2024-10-09',
-    location: 'Los Angeles',
-    time: '1:00 PM',
-    status: 'Completed',
-  },
-  {
-    id: '3',
-    midwife: 'Sophia Brown',
-    date: '2024-10-10',
-    location: 'Chicago',
-    time: '9:30 AM',
-    status: 'Scheduled',
-  },
-  {
-    id: '4',
-    midwife: 'Emily Davis',
-    date: '2024-10-11',
-    location: 'Houston',
-    time: '3:00 PM',
-    status: 'Completed',
-  },
-  {
-    id: '5',
-    midwife: 'Alice Smith',
-    date: '2024-10-08',
-    location: 'New York',
-    time: '10:00 AM',
-    status: 'Scheduled',
-  },
-];
-
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f3f3f3', // Light gray background
+    backgroundColor: '#f3f3f3',
     marginBottom: 64,
   },
   tabContainer: {
@@ -93,7 +53,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2, // For Android shadow
+    elevation: 2,
   },
   infoContainer: {
     flex: 1,
@@ -110,17 +70,6 @@ const styles = StyleSheet.create({
   textGray: {
     color: 'gray',
   },
-  button: {
-    backgroundColor: 'cyan',
-    padding: 8,
-    width: 64,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
   status: {
     marginBottom: 16,
     alignSelf: 'flex-end',
@@ -128,32 +77,92 @@ const styles = StyleSheet.create({
 });
 
 const AppointmentsList = () => {
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [selectedTab, setSelectedTab] = useState<'All' | 'Scheduled' | 'Completed'>('All');
+  const { user } = useContext(UserContext);
 
-  const getFilteredAppointments = () => {
-    if (selectedTab === 'All') {
-      return appointmentsData;
+  // Fetch appointments from Firestore
+  const fetchAppointments = async () => {
+    try {
+      // Ensure user is available
+      if (!user || !user.uid) {
+        console.log('No user logged in');
+        return;
+      }
+  
+      const appointmentsCollectionRef = collection(db, 'MidwifeAppointments');
+  
+      // Create a query to get appointments where 'user' field matches 'user.uid'
+      const q = query(appointmentsCollectionRef, where('user', '==', user.uid));
+  
+      // Fetch the documents based on the query
+      const snapshot = await getDocs(q);
+      
+      const appointmentsList: AppointmentItem[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log('appointments:', data);
+        return {
+          id: doc.id,
+          midwife: data.midwifeId,  // Adjust if necessary
+          date: data.date,
+          location: data.location,
+          time: data.timeSlot,
+          status: data.status,
+        };
+      });
+  
+      setAppointments(appointmentsList);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
     }
-    return appointmentsData.filter((appointment) => appointment.status === selectedTab);
   };
 
-  const renderAppointmentItem = ({ item, index }: { item: AppointmentItem, index: number }) => (
-    <View style={styles.appointmentContainer}>
-      <View style={styles.infoContainer}>
-        <View style={styles.infoContainerIcon}>
-          <Ionicons name='calendar-outline' size={20} color='black' />
+  // Fetch appointments when the component mounts
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  // Filter appointments based on the selected tab
+  const getFilteredAppointments = () => {
+    if (selectedTab === 'All') {
+      return appointments;
+    }
+    return appointments.filter((appointment) => appointment.status === selectedTab);
+  };
+
+  const renderAppointmentItem = ({ item }: { item: AppointmentItem }) => (
+    <TouchableOpacity 
+      onPress={() => router.navigate({
+        pathname: '/appointments/appointments/singleAppointment',
+        params: { 
+          appointmentId: item.id,
+          midwife: item.midwife,
+          date: item.date,
+          location: item.location,
+          time: item.time,
+          status: item.status,
+         },  
+      })}
+    >
+      <View style={styles.appointmentContainer}>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoContainerIcon}>
+            <Ionicons name='calendar-outline' size={20} color='black' />
+          </View>
+          <View>
+            <Text style={styles.boldText}>{item.date} - {item.time}</Text>
+            <Text style={{ fontSize: 18 }}>{item.midwife}</Text>
+            <Text style={styles.textGray}>{item.location}</Text>
+          </View>
         </View>
-        <View>
-          <Text style={styles.boldText}>{item.date} - {item.time}</Text>
-          <Text style={{ fontSize: 18 }}>{item.midwife}</Text>
-          <Text style={styles.textGray}>{item.location}</Text>
+        <View style={styles.status}>
+          <Text>{item.status}</Text>
         </View>
       </View>
-      <View style={styles.status}>
-        <Text>{item.status}</Text>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
+
+  
 
   return (
     <View style={styles.container}>
@@ -187,7 +196,7 @@ const AppointmentsList = () => {
         renderItem={renderAppointmentItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 16 }}
-        showsVerticalScrollIndicator={false}  // Hide the scroll bar
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
