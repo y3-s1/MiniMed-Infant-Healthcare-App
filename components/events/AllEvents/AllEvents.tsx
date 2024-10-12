@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, FlatList, Modal } from 'react-native';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { db } from '../../../config/FireBaseConfig'; // Import Firestore instance
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import SearchBar from '../SearchBar/SearchBar'; // Import the updated SearchBar
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
 import { Picker } from '@react-native-picker/picker'; // Import Picker
 import { router } from 'expo-router';
-
+import { UserContext } from '../../../contexts/userContext'; // Import UserContext
 
 // Define the type for your event object
 type Event = {
@@ -15,13 +15,18 @@ type Event = {
   EventTitle: string;
   EventImage: string;
   EventDate: string;
-  EventDescription: string;
-  EventLocation: string;
-  status: 'Upcoming' | 'Ongoing' | 'Completed'; // Add a status field for filtering if necessary
+  EventStartTime: string; // New field
+  EventEndTime: string; // New field
+  EventDescription: string; // New field
+  EventLocation: string; // New field
+  EventJoinedPeople: string[]; // Add this line to include the joined people
+  status: 'Upcoming' | 'Ongoing' | 'Completed'; // Add status to the Event type
+
 };
 
 export default function AllEvents() {
   
+  const { user } = useContext(UserContext); // Get the logged-in user from context
   const [events, setEvents] = useState<Event[]>([]); // State to hold events
   const [loading, setLoading] = useState<boolean>(true); // State to manage loading state
   const [filterVisible, setFilterVisible] = useState<boolean>(false); // State for filter modal visibility
@@ -47,8 +52,11 @@ export default function AllEvents() {
           EventTitle: data.EventTitle,
           EventImage: data.EventImage,
           EventDate: data.EventDate,
-          EventDescription: data.EventDescription,
-          EventLocation: data.EventLocation,
+          EventStartTime: data.EventStartTime, // Add this line to fetch EventStartTime
+          EventEndTime: data.EventEndTime, // Add this line to fetch EventEndTime
+          EventDescription: data.EventDescription, // Add this line to fetch EventDescription
+          EventLocation: data.EventLocation, // Add this line to fetch EventLocation
+          EventJoinedPeople: data.EventJoinedPeople || [], // Initialize if undefined
           status: getEventStatus(data.EventDate), // Compute the status
         });
       });
@@ -74,18 +82,18 @@ export default function AllEvents() {
   };
 
   const applyFilters = () => {
-    // Filter events based on title, date, month, and year
     const filteredEvents = events.filter(event => {
-      const matchesTitle = event.EventTitle.toLowerCase().includes(titleFilter.toLowerCase());
+      const matchesTitle = titleFilter ? event.EventTitle.toLowerCase().includes(titleFilter.toLowerCase()) : true;
       const eventDateObj = new Date(event.EventDate);
-      const matchesDate = dateFilter ? eventDateObj.toDateString() === dateFilter.toDateString() : true;
-      const matchesMonth = monthFilter !== undefined ? eventDateObj.getMonth() + 1 === monthFilter : true; // Months are 0-based
+
+      const matchesDate = dateFilter ? eventDateObj.toDateString() === dateFilter?.toDateString() : true;
+      const matchesMonth = monthFilter !== undefined ? eventDateObj.getMonth() === monthFilter - 1 : true; // Correct month logic
       const matchesYear = yearFilter !== undefined ? eventDateObj.getFullYear() === yearFilter : true;
 
       return matchesTitle && matchesDate && matchesMonth && matchesYear;
     });
-    setEvents(filteredEvents); // Update the events state with filtered events
-    setFilterVisible(false); // Close the filter modal
+    setEvents(filteredEvents);
+    setFilterVisible(false);
   };
 
   const resetFilters = async () => {
@@ -98,24 +106,53 @@ export default function AllEvents() {
     setFilterVisible(false); // Close the filter modal
   };
 
+  const handleJoinEvent = async (eventId: string) => {
+    if (!user) {
+      alert('You must be logged in to join an event.'); // Notify if the user is not logged in
+      return;
+    }
+
+    const eventRef = doc(db, 'Events', eventId);
+    try {
+      await updateDoc(eventRef, {
+        EventJoinedPeople: [...events.find(event => event.id === eventId)?.EventJoinedPeople || [], user.uid],
+      });
+      alert('Successfully joined the event!'); // Notify user of success
+    } catch (error) {
+      console.error("Error joining event: ", error);
+      alert('Failed to join the event.'); // Notify user of failure
+    }
+  };
+
   const renderEvent = ({ item }: { item: Event }) => (
-    <TouchableOpacity style={styles.eventCard} onPress={() => router.push(`/events/EventDetails?id=${item.id}`)} >
-      <Image source={{ uri: item.EventImage }} style={styles.eventImage} />
+    <TouchableOpacity style={styles.eventCard} onPress={() => router.push(`/events/EventDetails?id=${item.id}`)}>
       <View style={styles.eventInfo}>
         <Text style={styles.eventTitle}>{item.EventTitle}</Text>
-        <Text style={styles.eventDate}>{item.EventDate}</Text>
+        {/* <Text style={styles.eventDate}>{item.EventDate}</Text> */}
+        <Text style={styles.eventDate}>
+          <Text style={styles.boldText}>Date:</Text> <Text style={styles.normalText}>{item.EventDate}</Text>
+        </Text>
+        <Text style={styles.eventTime}>
+          <Text style={styles.boldText}>Start Time:</Text> <Text style={styles.normalText}>{item.EventStartTime}</Text> 
+          <Text style={styles.boldText}> | End Time:</Text> <Text style={styles.normalText}>{item.EventEndTime}</Text>
+        </Text>
+        <Text style={styles.eventLocation}>
+          <Text style={styles.boldText}>Location:</Text> <Text style={styles.normalText}>{item.EventLocation}</Text>
+        </Text>
+        <Text style={styles.eventDescription}>
+          <Text style={styles.boldText}>Description:</Text> <Text style={styles.normalText}>{item.EventDescription}</Text>
+        </Text>
         <View style={styles.eventFooter}>
-          <TouchableOpacity style={styles.joinButton}>
+          <TouchableOpacity style={styles.joinButton} onPress={() => handleJoinEvent(item.id)}>
             <Text style={styles.joinText}>Join</Text>
           </TouchableOpacity>
-          <View style={styles.ratingContainer}>
-            <FontAwesome name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>5.0</Text>
-          </View>
         </View>
       </View>
     </TouchableOpacity>
   );
+  
+  
+
 
   if (loading) {
     return <Text style={styles.loadingText}>Loading...</Text>; // Loading state
@@ -171,16 +208,13 @@ export default function AllEvents() {
               />
             )}
 
-            <Picker
-              selectedValue={monthFilter}
-              style={styles.picker}
-              onValueChange={(itemValue) => setMonthFilter(itemValue)}
-            >
+            <Picker selectedValue={monthFilter} style={styles.picker} onValueChange={(itemValue) => setMonthFilter(itemValue)}>
               <Picker.Item label="Select Month" value={undefined} />
-              {[...Array(12).keys()].map((i) => (
+              {[...Array(12).keys()].map(i => (
                 <Picker.Item key={i} label={`Month ${i + 1}`} value={i + 1} />
               ))}
             </Picker>
+
 
             <Picker
               selectedValue={yearFilter}
@@ -188,17 +222,20 @@ export default function AllEvents() {
               onValueChange={(itemValue) => setYearFilter(itemValue)}
             >
               <Picker.Item label="Select Year" value={undefined} />
-              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map((year) => (
-                <Picker.Item key={year} label={`${year}`} value={year} />
-              ))}
+              {/* Generate a range of years from 2020 to 2050 */}
+              {[...Array(31).keys()].map((i) => {
+                const year = 2020 + i; // Start from 2020 and increment up to 2050
+                return <Picker.Item key={year} label={`${year}`} value={year} />;
+              })}
             </Picker>
 
-            <View style={styles.buttonContainer}>
+
+            <View style={styles.modalButtons}>
               <TouchableOpacity onPress={applyFilters} style={styles.applyButton}>
-                <Text style={styles.buttonText}>Apply</Text>
+                <Text style={styles.buttonText}>Apply Filters</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={resetFilters} style={styles.resetButton}>
-                <Text style={styles.buttonText}>Reset</Text>
+                <Text style={styles.buttonText}>Reset Filters</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setFilterVisible(false)} style={styles.closeButton}>
                 <Text style={styles.buttonText}>Close</Text>
@@ -211,135 +248,165 @@ export default function AllEvents() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
+    backgroundColor: '#f0f4f8', // Light grey background for a soft look
   },
   loadingText: {
     textAlign: 'center',
     marginTop: 20,
   },
   eventCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginVertical: 8,
-    overflow: 'hidden',
-    elevation: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20, // Increased padding for better spacing
+    marginVertical: 10,
+    elevation: 4, // Slightly increased elevation for a better shadow effect
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   eventImage: {
     width: '100%',
     height: 150,
+    borderRadius: 12,
   },
   eventInfo: {
-    padding: 10,
+    marginTop: 10,
   },
   eventTitle: {
-    fontSize: 18,
+    fontSize: 24, // Slightly larger title font size
     fontWeight: 'bold',
+    color: '#2c3e50', // Darker color for better readability
+    marginBottom: 5,
   },
   eventDate: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2980b9', // Blue color for the date to make it stand out
+    marginVertical: 5,
+  },
+  eventTime: {
+    fontSize: 15,
+    
+    color: '#34495e',
+    marginVertical: 2,
+  },
+  eventLocation: {
+    fontSize: 15,
+    color: '#34495e',
+    marginVertical: 2,
+  },
+  eventDescription: {
+    fontSize: 15,
+    color: '#34495e',
+    marginVertical: 5,
+    lineHeight: 20, // Improved readability
+
+    
+  },
+
+  boldText: {
+    fontWeight: 'bold',
+    color: '#34495e', // Optional: Adjust color if necessary
+  },
+  normalText: {
+    fontWeight: 'normal',
+    color: '#34495e', // Ensure consistency with other text
   },
   eventFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end', // Align the join button to the right
     alignItems: 'center',
     marginTop: 10,
   },
   joinButton: {
-    backgroundColor: '#00CED1',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 5,
+    backgroundColor: '#60a5fa',    
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    elevation: 3,
   },
   joinText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   ratingText: {
-    marginLeft: 4,
-    color: '#666',
+    marginLeft: 5,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    margin: 20,
+    backgroundColor: '#ffffff',
     padding: 20,
     borderRadius: 10,
-    elevation: 5,
+    width: '80%',
   },
   modalTitle: {
     fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 10,
   },
   filterInput: {
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
   },
   dateButton: {
-    backgroundColor: '#00CED1', // Primary color for better visibility
-    paddingVertical: 12, // Increased padding for a better size
+    // backgroundColor: '#007bff',
+    backgroundColor: '#60a5fa',    
+    padding: 10,
     borderRadius: 5,
+    alignItems: 'center',
     marginBottom: 10,
-    elevation: 2, // Add elevation for shadow effect
-    alignItems: 'center', // Center the text
   },
   dateButtonText: {
     color: '#fff',
-    fontSize: 16, // Increased font size for better readability
-    fontWeight: 'bold', // Make the text bold
-    textAlign: 'center',
   },
   picker: {
     height: 50,
     width: '100%',
     marginBottom: 10,
   },
-  buttonContainer: {
+  modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
   },
   applyButton: {
-    backgroundColor: '#00CED1', // Green for apply action
-    paddingVertical: 12, // Increased padding for a better size
+    backgroundColor: '#60a5fa',    
+    padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginRight: 5,
-    elevation: 2, // Add elevation for shadow effect
   },
   resetButton: {
-    backgroundColor: '#DC3545', // Red for reset action
-    paddingVertical: 12, // Increased padding for a better size
+    backgroundColor: '#60a5fa',    
+    padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-    elevation: 2, // Add elevation for shadow effect
   },
   closeButton: {
-    backgroundColor: '#6C757D', // Grey for close action
-    paddingVertical: 12, // Increased padding for a better size
+    backgroundColor: '#dc3545',
+    padding: 10,
     borderRadius: 5,
-    flex: 1,
-    marginLeft: 5,
-    elevation: 2, // Add elevation for shadow effect
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16, // Increased font size for better readability
-    fontWeight: 'bold', // Make the text bold
-    textAlign: 'center',
   },
-}); 
+});
