@@ -4,6 +4,7 @@ import { db } from '@/config/FireBaseConfig';  // Firebase configuration
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 
 interface MidwifeProfileProps {
   midwifeId: string;
@@ -18,6 +19,7 @@ const clinics = [
 ];
 
 const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
+  const navigation = useNavigation();
   const [midwife, setMidwife] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState<boolean>(false);  // State to manage full description view
@@ -28,6 +30,8 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
 
 
   useEffect(() => {
+
+    navigation.setOptions({ title: 'Midwives' });
     const fetchMidwifeData = async () => {
       try {
         // Fetch Midwife document

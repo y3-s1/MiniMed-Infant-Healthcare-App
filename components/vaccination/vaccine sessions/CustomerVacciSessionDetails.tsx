@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig'; // Firestore instance
+import { useNavigation } from '@react-navigation/native';
 
 const CustomerVacciSessionDetails = ({ vaccinationRecord }) => {
+  const navigation = useNavigation();
   const [vaccineDetails, setVaccineDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recordDetails, setRecordDetails] = useState(null); // To hold the fetched record details
@@ -12,6 +14,8 @@ const CustomerVacciSessionDetails = ({ vaccinationRecord }) => {
   console.log('vaccinationRecord', vaccinationRecord);
 
   useEffect(() => {
+
+    navigation.setOptions({ title: 'Customer Vaccination Session' });
     const fetchVaccinationDetails = async () => {
       try {
         // Fetch the vaccination record details
