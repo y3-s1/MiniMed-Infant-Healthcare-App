@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, TextInput, FlatList, Linking  } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Modal, ActivityIndicator, TextInput, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 import { db } from '../../config/FireBaseConfig';
+import { UserContext } from '../../contexts/userContext'; 
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+
 
 // Define an interface for the Event Data
 interface EventData {
@@ -30,25 +33,23 @@ interface UserData {
 }
 
 export default function EventDetails() {
+
+  const navigation = useNavigation();
+
   const { id } = useLocalSearchParams(); // Get event ID from route params
   const [eventData, setEventData] = useState<EventData | null>(null); // Store event data
   const [organizerData, setOrganizerData] = useState<OrganizerData | null>(null); // Store organizer data
   const [loading, setLoading] = useState(true); // Loading state
-  const [feedbackList, setFeedbackList] = useState([
-    { id: 1, text: "Great workshop! Learned a lot.", userImage: 'https://via.placeholder.com/40', likes: 5 },
-    { id: 2, text: "Very informative. Thanks!", userImage: 'https://via.placeholder.com/40', likes: 2 },
-  ]);
+  const [feedbackList, setFeedbackList] = useState<any[]>([]); // Initialize as empty array for actual feedback data
   const [newFeedback, setNewFeedback] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showAttendeesModal, setShowAttendeesModal] = useState(false);
   const [attendeesList, setAttendeesList] = useState<UserData[]>([]);
+  const { user } = useContext(UserContext) || {}; // Ensure user is an empty object if context is null
 
-
-
-
-   // Define the makeCall function
-   const makeCall = (phoneNumber: string) => {
-    const phoneUrl = `tel:${phoneNumber}`;
+  // Define the makeCall function
+  const makeCall = (phoneNumber: string) => {
+    const phoneUrl = `tel:${phoneNumber}`; // Use backticks for string interpolation
     Linking.canOpenURL(phoneUrl)
       .then((supported) => {
         if (supported) {
@@ -62,11 +63,20 @@ export default function EventDetails() {
       });
   };
 
-  // Fetch event details from Firestore
   useEffect(() => {
+
+
+    navigation.setOptions({ title: 'Event Details' });
     const fetchEventData = async () => {
       try {
-        const eventDocRef = doc(db, 'Events', id);
+        const eventId = Array.isArray(id) ? id[0] : id; // Ensure 'id' is a string, not an array
+        if (!eventId) {
+          console.error('Event ID is missing');
+          return;
+        }
+
+        // Fetch event details from Firestore
+        const eventDocRef = doc(db, 'Events', eventId);
         const eventDoc = await getDoc(eventDocRef);
 
         if (eventDoc.exists()) {
@@ -74,10 +84,10 @@ export default function EventDetails() {
           setEventData(eventData); // Store event data
 
           // Fetch organizer data
-          const organizerDocRef = doc(db, 'Midwives', eventData.EventOrganizer); // Get the organizer using the ID
+          const organizerDocRef = doc(db, 'Midwives', eventData.EventOrganizer);
           const organizerDoc = await getDoc(organizerDocRef);
           if (organizerDoc.exists()) {
-            const organizerInfo = organizerDoc.data() as OrganizerData; // Get the organizer data
+            const organizerInfo = organizerDoc.data() as OrganizerData;
             setOrganizerData(organizerInfo);
           } else {
             console.error("Organizer not found");
@@ -93,16 +103,36 @@ export default function EventDetails() {
               email: doc.data().email,
             })) as UserData[];
 
-            // Filter users based on EventJoinedPeople array
-            const attendees = allUsers.filter(user => eventData.EventJoinedPeople?.includes(user.id)); // Use optional chaining here
+            const attendees = allUsers.filter(user => eventData.EventJoinedPeople?.includes(user.id)); // Filter attendees
             setAttendeesList(attendees);
-            // console.log(attendees);
           }
+
+          // Fetch event feedback data
+          const feedbackRef = collection(db, 'Events', eventId, 'EventFeedback');
+          const feedbackSnapshot = await getDocs(feedbackRef);
+
+          const feedbackData = await Promise.all(
+            feedbackSnapshot.docs.map(async (feedbackDoc) => {
+              const feedback = feedbackDoc.data();
+              const userDocRef = doc(db, 'Users', feedback.UserId);
+              const userDoc = await getDoc(userDocRef);
+              const userData = userDoc.exists() ? userDoc.data() : { name: 'Unknown User' };
+              return {
+                id: feedbackDoc.id,
+                text: feedback.Comment,
+                likes: feedback.Like ? 1 : 0,
+                userImage: 'https://via.placeholder.com/40', // Placeholder for user image
+                userName: userData?.name || 'Unknown User',
+              };
+            })
+          );
+          setFeedbackList(feedbackData); // Update feedback list with actual data
+
         } else {
           console.error("Event not found");
         }
       } catch (error) {
-        console.error("Error fetching event details:", error);
+        console.error("Error fetching event details and feedback:", error);
       } finally {
         setLoading(false);
       }
@@ -111,11 +141,26 @@ export default function EventDetails() {
     fetchEventData();
   }, [id]);
 
-  const handleFeedbackSubmit = () => {
-    if (newFeedback.trim() !== '') {
-      setFeedbackList([...feedbackList, { id: feedbackList.length + 1, text: newFeedback, userImage: 'https://via.placeholder.com/40', likes: 0 }]);
-      setNewFeedback('');
-      setShowFeedbackModal(false);
+  const handleFeedbackSubmit = async () => {
+    if (newFeedback.trim() !== '' && user && user.uid) { // Check if user is logged in
+      const feedbackData = {
+        Comment: newFeedback,
+        Like: false,
+        UserId: user.uid, // Use user's UID
+      };
+
+      // Store feedback in Firestore
+      try {
+        const feedbackCollectionRef = collection(db, 'Events', id as string, 'EventFeedback'); // Path to EventFeedback collection
+        await addDoc(feedbackCollectionRef, feedbackData); // Add the feedback document
+
+        // Update local feedback list
+        setFeedbackList([...feedbackList, { id: feedbackList.length + 1, text: newFeedback, userImage: 'https://via.placeholder.com/40', likes: 0, userName: user.name }]);
+        setNewFeedback('');
+        setShowFeedbackModal(false);
+      } catch (error) {
+        console.error("Error submitting feedback:", error);
+      }
     }
   };
 
@@ -139,15 +184,21 @@ export default function EventDetails() {
     <ScrollView style={styles.container}>
       {/* Event Details Section */}
       <View style={styles.eventInfoContainer}>
-        <Image
+        {/* <Image
           source={{ uri: eventData?.EventImage || 'https://via.placeholder.com/100' }} // Use fallback image if not present
           style={styles.eventImage}
-        />
+        /> */}
+    
+        {/* Event Date and Time */}
         <View style={styles.eventInfo}>
-          <Text style={styles.eventTitle}>{eventData?.EventTitle || 'Event Title'}</Text>
-          <Text style={styles.eventDate}>{eventData?.EventDate || 'Event Date'}</Text>
+                  <Text style={styles.eventTitle}>{eventData?.EventTitle || 'Event Title'}</Text>
+
+          <Text style={styles.eventDate}>
+            <Text style={styles.eventDatelabel}>Date: </Text> 
+            {eventData?.EventDate || 'Event Date'}
+          </Text>
           <Text style={styles.eventTime}>
-            {eventData?.EventStartTime} - {eventData?.EventEndTime}
+          <Text style={styles.eventTimelabel}>Start: </Text>  {eventData?.EventStartTime} <Text style={styles.eventTimelabel}> - End: </Text>  {eventData?.EventEndTime}
           </Text>
         </View>
       </View>
@@ -162,121 +213,185 @@ export default function EventDetails() {
       <View style={styles.organizedBySection}>
         <Text style={styles.sectionTitle}>Organized By</Text>
         <View style={styles.organizerContainer}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/50' }} // Placeholder for organizer image
-            style={styles.organizerImage}
-          />
           <View style={styles.organizerInfo}>
             <Text style={styles.organizerName}>{organizerData?.name || 'Organizer Name'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={styles.organizerPhone}>{organizerData?.phone || 'Phone Number'}</Text>
               <TouchableOpacity onPress={() => organizerData?.phone && makeCall(organizerData.phone)}>
-                <Ionicons name="call-outline" size={20} color="#00A8E1" style={{ marginLeft: 8 }} />
+                <Ionicons name="call-outline" size={20} color="#60a5fa" style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </View>
 
-
       {/* Location Section */}
       <View style={styles.locationSection}>
         <Text style={styles.sectionTitle}>Location</Text>
-        <Image
-          source={{ uri: 'https://via.placeholder.com/400x200' }} // Placeholder for map image
-          style={styles.locationMap}
-        />
+        {/* <Image
+          source={{ uri: 'https://via.placeholder.com/300x200' }} // Placeholder for map image
+          style={styles.mapImage}
+        /> */}
         <Text style={styles.locationAddress}>{eventData?.EventLocation || 'Event Location'}</Text>
       </View>
 
-      {/* People Attending Section */}
-      <View style={styles.peopleAttendingSection}>
-        <Text style={styles.sectionTitle}>People attending ({eventData?.EventJoinedPeople?.length || 0})</Text>
-        <TouchableOpacity style={styles.seeAllButton} onPress={() => setShowAttendeesModal(true)}>
-          <Text style={styles.seeAllButtonText}>See All</Text>
+        {/* Attendees Section */}
+      <View style={styles.attendeesSection}>
+        <Text style={styles.sectionTitle}>Attendees</Text>
+        <TouchableOpacity onPress={() => setShowAttendeesModal(true)}>
+          <Text style={styles.viewAttendeesButton}>View Attendees ({attendeesList.length})</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Feedback Section */}
+      {/* Feedback Section       */}
       <View style={styles.feedbackSection}>
-        <Text style={styles.sectionTitle}>Feedback and Ratings</Text>
-
-        <ScrollView style={styles.feedbackContainer} nestedScrollEnabled={true}>
-          {feedbackList.map(feedback => (
-            <View key={feedback.id} style={styles.feedbackItem}>
-              <Image source={{ uri: feedback.userImage }} style={styles.feedbackUserImage} />
-              <View style={styles.feedbackTextContainer}>
-                <Text style={styles.feedbackText}>{feedback.text}</Text>
-                <View style={styles.feedbackActions}>
-                  <TouchableOpacity>
-                    <Ionicons name="heart-outline" size={20} color="#00A8E1" />
-                  </TouchableOpacity>
-                  <Text style={styles.likesCount}>{feedback.likes}</Text>
-                </View>
+        <Text style={styles.sectionTitle}>Feedback & Ratings</Text>
+        <FlatList
+          data={feedbackList}
+          renderItem={({ item }) => (
+            <View style={styles.feedbackContainer}>
+              <Image source={{ uri: item.userImage }} style={styles.userImage} />
+              <View style={styles.feedbackContent}>
+                <Text style={styles.feedbackUserName}>{item.userName}</Text>
+                <Text style={styles.feedbackText}>{item.text}</Text>                        
+                
               </View>
             </View>
-          ))}
-        </ScrollView>
-
+          )}
+          keyExtractor={(item) => item.id}
+        />
         <TouchableOpacity style={styles.addFeedbackButton} onPress={() => setShowFeedbackModal(true)}>
           <Text style={styles.addFeedbackButtonText}>Add Feedback</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Modal for Feedback */}
-      <Modal
-        visible={showFeedbackModal}
-        transparent={true} // Set transparent to true
-        animationType="slide"
-        onRequestClose={() => setShowFeedbackModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TextInput
-              style={styles.feedbackInput}
-              placeholder="Write your feedback..."
-              multiline
-              value={newFeedback}
-              onChangeText={setNewFeedback}
-            />
-            <View style={styles.feedbackFormActions}>
-              <TouchableOpacity style={styles.submitButton} onPress={handleFeedbackSubmit}>
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowFeedbackModal(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
-      {/* Modal for Attendees */}
-      <Modal
-        visible={showAttendeesModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowAttendeesModal(false)}
-      >
-        <View style={styles.modalOverlay}>
+      
+          {/* Attendees Modal */}
+      <Modal visible={showAttendeesModal} transparent animationType="slide">
+        <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Attendees</Text>
             <FlatList
               data={attendeesList}
-              keyExtractor={(item) => item.id} // Use 'id' as key
               renderItem={renderAttendee}
+              keyExtractor={(item) => item.id}
             />
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAttendeesModal(false)}>
-              <Text style={styles.cancelButtonText}>Close</Text>
+            <TouchableOpacity onPress={() => setShowAttendeesModal(false)}>
+              <Text style={styles.closeModalButton}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      
+      {/* Feedback Modal */}
+      <Modal visible={showFeedbackModal} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Your Feedback</Text>
+            <TextInput
+              style={styles.feedbackInput}
+              placeholder="Write your feedback here..."
+              value={newFeedback}
+              onChangeText={setNewFeedback}
+            />
+            <TouchableOpacity style={styles.submitFeedbackButton} onPress={handleFeedbackSubmit}>
+              <Text style={styles.submitFeedbackButtonText}>Submit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowFeedbackModal(false)}>
+              <Text style={styles.closeModalButton}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      
     </ScrollView>
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
+  // Styles for the component
+  // container: {
+  //   flex: 1,
+  //   padding: 16,
+  //   backgroundColor: '#fff',
+  // },
+  // loadingContainer: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // eventInfoContainer: {
+  //   // flexDirection: 'row',
+  //   alignItems: 'center',
+  //   marginBottom: 20,
+  // },
+  // eventImage: {
+  //   width: 100,
+  //   height: 100,
+  //   borderRadius: 10,
+  //   marginRight: 16,
+  // },
+  // eventInfo: {
+  //   // flex: 1,
+  //   alignItems: 'center',
+  // },
+  // eventTitle: {
+  //   fontSize: 24,
+  //   fontWeight: 'bold',
+  // },
+  // eventDate: {
+  //   fontSize: 16,
+  //   color: '#666',
+  //   marginBottom: 5, // Add some spacing between date and time
+  // },
+  // eventTime: {
+  //   fontSize: 16,
+  //   color: '#666',
+  // },
+
+  
+  // aboutSection: {
+  //   marginBottom: 20,
+  // },
+  // sectionTitle: {
+  //   fontSize: 20,
+  //   fontWeight: 'bold',
+  //   marginBottom: 10,
+  // },
+  // sectionContent: {
+  //   fontSize: 16,
+  //   color: '#333',
+  // },
+  // organizedBySection: {
+  //   marginBottom: 20,
+  // },
+  // organizerContainer: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  // },
+  // organizerInfo: {
+  //   flex: 1,
+  // },
+  // organizerName: {
+  //   fontSize: 18,
+  //   // fontWeight: 'bold',
+  // },
+  // organizerPhone: {
+  //   fontSize: 16,
+  //   // color: '#00A8E1',
+  //   color: '#60a5fa',  
+  // },
+  // locationSection: {
+  //   marginBottom: 20,
+  // },
+  // mapImage: {
+  //   width: '100%',
+  //   height: 200,
+  //   borderRadius: 10,
+  // },
+
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
@@ -300,20 +415,47 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   eventInfo: {
-    flex: 1,
-    justifyContent: 'center',
+    // flex: 1,
+    // justifyContent: 'center',
+    alignItems: 'center', // Align the date and time to the center
+    marginBottom: 20, // Space between rows
   },
   eventTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    // fontSize: 18,
+    // fontWeight: 'bold',
+    fontSize: 18, // Larger font size for title
+    fontWeight: 'bold', // Bold for emphasis
+    textAlign: 'center', // Center the title
+    marginBottom: 10, // Space below the title
+    color: '#333', 
   },
   eventDate: {
-    fontSize: 14,
-    color: '#555',
+    // fontSize: 14,
+    // color: '#555',
+    fontWeight: 'bold', 
+    fontSize: 14, // Medium font size for date label
+    color: '#60a5fa',  // Slightly lighter for normal text
+    marginBottom: 5, 
   },
+  eventDatelabel: {
+    // fontSize: 14,
+    // color: '#555',
+    fontSize: 16, // Medium font size for date label
+    fontWeight: 'bold', // Bold for the "Date" label
+    color: '#333', // Slightly lighter for normal text
+    marginBottom: 5, 
+  },
+
+  
   eventTime: {
     fontSize: 14,
-    color: '#555',
+    fontWeight: 'bold', 
+    color: '#60a5fa', 
+  },
+  eventTimelabel: {
+    fontSize: 14,
+    fontWeight: 'bold', 
+    color: '#333', 
   },
   aboutSection: {
     padding: 16,
@@ -353,7 +495,7 @@ const styles = StyleSheet.create({
   },
   organizerPhone: {
     fontSize: 14,
-    color: '#555',
+    color: '#60a5fa', 
   },
   locationSection: {
     padding: 16,
@@ -370,144 +512,215 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  peopleAttendingSection: {
-    padding: 16,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  seeAllButton: {
-    backgroundColor: '#00A8E1',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  seeAllButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  feedbackSection: {
-    padding: 16,
-    backgroundColor: '#fff',
-    marginBottom: 16,
-  },
-  feedbackContainer: {
-    maxHeight: 150,
-  },
-  feedbackItem: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  feedbackUserImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  feedbackTextContainer: {
-    flex: 1,
-  },
-  feedbackText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  feedbackActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likesCount: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#555',
-  },
+
+  // feedbackSection: {
+  //   marginBottom: 20,
+  // },
+  // feedbackContainer: {
+  //   flexDirection: 'row',
+  //   alignItems: 'flex-start',
+  //   marginBottom: 10,
+  // },
+  // userImage: {
+  //   width: 40,
+  //   height: 40,
+  //   borderRadius: 20,
+  //   marginRight: 10,
+  // },
+  // feedbackContent: {
+  //   flex: 1,
+  // },
+  // feedbackUserName: {
+  //   fontWeight: 'bold',
+  // },
+  // feedbackText: {
+  //   marginTop: 5,
+  //   fontSize: 16,
+  //   color: '#333',
+  // },
+  // feedbackLikes: {
+  //   fontSize: 14,
+  //   color: '#666',
+  //   marginLeft: 10,
+  // },
+
+
+
+
+
   addFeedbackButton: {
-    backgroundColor: '#00A8E1',
+    marginTop: 10,
+    // backgroundColor: '#00A8E1',
+    backgroundColor: '#60a5fa',  
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10,
   },
   addFeedbackButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontSize: 16,
   },
-  modalOverlay: {
+
+
+
+  attendeesSection: {
+    // marginBottom: 20,
+
+    padding: 16,
+    backgroundColor: '#fff',
+    marginBottom: 16,
+  },
+  viewAttendeesButton: {
+    fontSize: 16,
+    // color: '#00A8E1',
+    color: '#60a5fa',  
+    
+  },
+
+
+  modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Make background semi-transparent
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
+    width: '80%',
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    width: '90%', // Set width to control the size of the modal
-  },
-  feedbackInput: {
-    height: 80,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 16,
-  },
-  feedbackFormActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  submitButton: {
-    backgroundColor: '#00A8E1',
-    padding: 10,
-    borderRadius: 5,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-    padding: 10,
-    borderRadius: 5,
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  attendeesModalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  attendeesList: {
-    flex: 1,
+
+
+  feedbackInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 20,
+  },
+  submitFeedbackButton: {
+    // backgroundColor: '#00A8E1',
+    backgroundColor: '#60a5fa',  
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+  },
+  submitFeedbackButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  closeModalButton: {
+    // color: '#00A8E1',
+    color: '#60a5fa',  
+    marginTop: 10,
   },
   attendeeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     padding: 10,
     borderBottomWidth: 1,
-    borderColor: '#e0e0e0',
+    borderBottomColor: '#ccc',
   },
   attendeeName: {
     fontSize: 16,
+    fontWeight: 'bold',
   },
   attendeeEmail: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
   },
-  closeButton: {
-    backgroundColor: '#00A8E1',
-    padding: 10,
-    borderRadius: 5,
+
+  locationAddress: { // Added missing style for location address
+    fontSize: 16,
+    color: '#333',
+    // textAlign: 'center',
+    marginTop: 8,
+  },
+
+
+
+
+
+
+
+
+
+
+  feedbackSection: {
+    marginBottom: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  
+  feedbackContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  
+  userImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  
+  feedbackContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  
+  feedbackUserName: {
+    fontWeight: 'bold',
+    color: '#343a40',
+    marginBottom: 2,
+  },
+  
+  feedbackText: {
+    fontSize: 14,
+    color: '#495057',
+    marginBottom: 5,
+  },
+  
+  feedbackActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    justifyContent: 'space-between',
   },
-  closeButtonText: {
+  
+  likeButton: {
+    backgroundColor: '#00A8E1',
+    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  
+  likeButtonText: {
     color: '#fff',
     fontWeight: 'bold',
   },
+  
+  feedbackLikes: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginLeft: 10,
+  },
+  
+
+
+
 });

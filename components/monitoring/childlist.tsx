@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { getFirestore, collection, getDocs, doc } from 'firebase/firestore';
+import { UserContext } from '@/contexts/userContext';
 
 interface Child {
   id: string;
@@ -40,8 +41,11 @@ const calculateAge = (birthday: string): string => {
 };
 
 const ChildList: React.FC = () => {
+
+  const { user } = useContext(UserContext);
+
   const [children, setChildren] = useState<Child[]>([]);
-  const userId = '2DaIkDN1VUuNGk199UBJ'; // Fixed userId
+  const userId = user?.uid;
   const navigation = useNavigation<ChildListNavigationProp>();
 
   useEffect(() => {

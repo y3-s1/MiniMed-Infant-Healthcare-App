@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import HeadCircumferenceMonetoring from './metricsmonitering/headcircumferencemonetoring';
 import HeightMonitoring from './metricsmonitering/heightmonetoring';
 import WeightMonitoring from './metricsmonitering/weightmonetoring';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { UserContext } from '@/contexts/userContext';
 
 type UniqueMonitorProps = {
   childId: string;
@@ -35,9 +37,9 @@ const UniqueMonitor: React.FC<UniqueMonitorProps> = ({ childId, childName }) => 
 
       {/* Monitoring Data */}
       <View className="p-4">
-        {selectedTab === 'Height' && <HeightMonitoring />}
-        {selectedTab === 'Weight' && <WeightMonitoring />}
-        {selectedTab === 'HeadCircumference' && <HeadCircumferenceMonetoring />}
+        {selectedTab === 'Height' && <HeightMonitoring childId={childId}/>}
+        {selectedTab === 'Weight' && <WeightMonitoring childId={childId} />}
+        {selectedTab === 'HeadCircumference' && <HeadCircumferenceMonetoring childId={childId}/>}
       </View>
     </View>
   );

@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 import { useNavigation } from 'expo-router';
+import { UserContext } from '@/contexts/userContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface VaccinationDetailCompleteProps {
   vaccine: any; // Replace 'any' with a more specific type if needed
@@ -14,12 +16,25 @@ interface VaccinationDetailCompleteProps {
   const [selectedTab, setSelectedTab] = useState<number>(0); // Custom tab index
   const [showFullDescription, setShowFullDescription] = useState<boolean>(false); // Track description state
 
+  const { user , selectedChildId } = useContext(UserContext);
+
   const navigation = useNavigation();
 
   useEffect(() => {
     navigation.setOptions({
       headerTransparent: true,
       headerTitle: '',
+      headerTintColor: '#fff',
+      headerLeft: () => (
+        <View style={{ marginLeft: 15, marginTop:15, backgroundColor: '#fff', padding: 5, borderRadius: 30 }}>
+          <Ionicons
+            name="arrow-back"
+            size={30}
+            color="#3b82f6" // Change the back arrow color
+            onPress={() => navigation.goBack()} // Back navigation action
+          />
+        </View>
+      ),
     });
 
     fetchVaccinationData();
@@ -37,8 +52,8 @@ interface VaccinationDetailCompleteProps {
   // Create the query with multiple filters: userId, childId, and vaccineId
       const vaccinationRecordsQuery = query(
         vaccinationRecordsRef,
-        where('UserId', '==', '2DaIkDN1VUuNGk199UBJ'),
-        where('childId', '==', 'child_4'),
+        where('UserId', '==', user.uid),
+        where('childId', '==', selectedChildId),
         where('vaccineId', '==', vaccine)
       );
 
