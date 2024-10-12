@@ -10,7 +10,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ selectedTab, setSelectedTab }) => {
   return (
-    <View className="h-80 bg-cyan-400 rounded-b-3xl py-9">
+    <View className="h-60 bg-blue-400 rounded-b-3xl py-9">
       {/* Top section with app logo and icons */}
       <View className="px-4 py-4 flex-row justify-between items-center">
         {/* App logo placeholder */}
@@ -35,17 +35,17 @@ const Header: React.FC<HeaderProps> = ({ selectedTab, setSelectedTab }) => {
       </View>
 
       {/* Bottom navigation section */}
-      <View className="flex-row justify-center mt-28 bg-cyan-300 w-3/5 mx-auto">
+      <View className="flex-row justify-center mt-16 bg-blue-300 w-3/5 mx-auto">
         {/* Navigation buttons */}
         <TouchableOpacity
           onPress={() => setSelectedTab('upcomingEvents')}
           className={`px-6 py-2 rounded-full ${
-            selectedTab === 'upcomingEvents' ? 'bg-white' : 'bg-cyan-300'
+            selectedTab === 'upcomingEvents' ? 'bg-white' : 'bg-blue-300'
           }`}
         >
           <Text
             className={`${
-              selectedTab === 'upcomingEvents' ? 'text-cyan-500' : 'text-white'
+              selectedTab === 'upcomingEvents' ? 'text-blue-500' : 'text-white'
             } font-poppins`}
           >
             Upcoming Events
@@ -55,12 +55,12 @@ const Header: React.FC<HeaderProps> = ({ selectedTab, setSelectedTab }) => {
         <TouchableOpacity
           onPress={() => setSelectedTab('completedEvents')}
           className={`mx-4 px-6 py-2 rounded-full ${
-            selectedTab === 'completedEvents' ? 'bg-white' : 'bg-cyan-300'
+            selectedTab === 'completedEvents' ? 'bg-white' : 'bg-blue-300'
           }`}
         >
           <Text
             className={`${
-              selectedTab === 'completedEvents' ? 'text-cyan-500' : 'text-white'
+              selectedTab === 'completedEvents' ? 'text-blue-500' : 'text-white'
             } font-poppins`}
           >
             Completed Events
