@@ -10,12 +10,11 @@ interface MidwifeProfileProps {
 }
 
 const areas = [
-  'Malabe', 'Kampala', 'Kibale', 'Jinja', 'Gulu', 'Kasese', 'Mbarara', 'Mubende', 'Mityana',
-  'Nakapi', 'Nakasongola', 'Nebbi', 'Ntungamo', 'Rakai', 'Sembabule',
+  'Malabe', 'Gampaha', 'Kaduwela', 'Biyagama', 'Kelaniya', 'Baththaramulla', 'Rajagiriya',
 ];
 
 const clinics = [
-  'Kaduwela', 'Malabe', 'Nugegoda', 'Kampala', 'Kibale', 'Jinja',
+  'Kaduwela', 'Malabe', 'Nugegoda', 'Biyagama', 'Rajagiriya', 'Kelaniya',
 ];
 
 const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
@@ -26,6 +25,7 @@ const MidwifeProfile: React.FC<MidwifeProfileProps> = ({ midwifeId }) => {
   const [selectedLocation, setSelectedLocation] = useState('Malabe');
   const [midwifeSessions, setMidwifeSessions] = useState<any[]>([]);
   const [filteredMidwifeSessions, setFilteredMidwifeSessions] = useState<any[]>([]);
+
 
   useEffect(() => {
     const fetchMidwifeData = async () => {
