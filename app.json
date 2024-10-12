@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MiniMed",
-    "slug": "MiniMed",
+    "slug": "minimed",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -32,6 +32,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b3bad61a-0087-4e47-a9cd-7ffc77952450"
+      }
+    },
+    "owner": "sandeep_kahawatta"
   }
 }
