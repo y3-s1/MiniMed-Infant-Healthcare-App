@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,6 +7,7 @@ import Childmonitorheader from './childmonitorheader';
 import UniqueChildDetails from './uniqueChildMonitoring/uniquechilddetails';
 import UniqueMonitor from './uniqueChildMonitoring/uniquemonitor';
 import UpdateMetrics from './uniqueChildMonitoring/updatemetrics';
+import { UserContext } from '@/contexts/userContext';
 
 type RootStackParamList = {
   ChildMonitor: { childId: string; childName: string };
@@ -32,6 +33,8 @@ interface ChildDetails {
 }
 
 const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
+
+  const { user } = useContext(UserContext);
   const { childId, childName } = route.params;
 
   const [childDetails, setChildDetails] = useState<ChildDetails | null>(null);
@@ -41,7 +44,7 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     const fetchChildDetails = async () => {
       const db = getFirestore();
-      const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
+      const childRef = doc(db, 'Users', user?.uid, 'Childrens', childId);
       const childSnap = await getDoc(childRef);
 
       if (childSnap.exists()) {
@@ -61,7 +64,7 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
     headCircumference: { value: string, date: string }
   }) => {
     const db = getFirestore();
-    const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
+    const childRef = doc(db, 'Users', user?.uid, 'Childrens', childId);
 
     try {
       // Update the metrics in Firestore
@@ -94,7 +97,7 @@ const ChildMonitor: React.FC<Props> = ({ route, navigation }) => {
 
   const handleDeleteChild = async (childId: string) => {
     const db = getFirestore();
-    const childRef = doc(db, 'Users', '2DaIkDN1VUuNGk199UBJ', 'Childrens', childId);
+    const childRef = doc(db, 'Users', user?.uid, 'Childrens', childId);
 
     try {
       await deleteDoc(childRef);
