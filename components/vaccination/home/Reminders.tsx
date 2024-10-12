@@ -6,6 +6,8 @@ import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, collect
 import { db } from '../../../config/FireBaseConfig'; // Import your Firestore config
 import { UserContext } from '@/contexts/userContext';
 import { useNavigation } from 'expo-router';
+import { registerForPushNotificationsAsync, setupNotificationListeners } from '@/services/notificationService'; // Adjust the import path accordingly
+import { cancelScheduledNotificationAsync, scheduleNotificationAsync } from 'expo-notifications';
 
 interface Reminder {
   id: string;
@@ -14,6 +16,7 @@ interface Reminder {
   description: string;
   vaccineId: string; // Include vaccineId
   location: string;
+  isNotificationEnabled: boolean; // Track notification status
 }
 
 const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
@@ -38,27 +41,28 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
 
 
     fetchReminders();
-    requestNotificationPermissions(); // Request notification permissions on component mount
+    //requestNotificationPermissions(); // Request notification permissions on component mount
+    setupNotificationListeners();
   }, [selectedChildId]);
 
   // Function to request notification permissions
-  const requestNotificationPermissions = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'You need to grant notification permissions to use this feature.');
-    }
-  };
+  // const requestNotificationPermissions = async () => {
+  //   const { status } = await Notifications.requestPermissionsAsync();
+  //   if (status !== 'granted') {
+  //     Alert.alert('Permission Denied', 'You need to grant notification permissions to use this feature.');
+  //   }
+  // };
 
-  // Function to schedule a notification
-  const scheduleNotification = async (title: string, body: string, date: Date) => {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-      },
-      trigger: date, // Schedule the notification at the given date
-    });
-  };
+  // // Function to schedule a notification
+  // const scheduleNotification = async (title: string, body: string, date: Date) => {
+  //   await Notifications.scheduleNotificationAsync({
+  //     content: {
+  //       title,
+  //       body,
+  //     },
+  //     trigger: date, // Schedule the notification at the given date
+  //   });
+  // };
 
   const fetchReminders = async () => {
     try {
@@ -104,7 +108,8 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
           date: new Date(data.date.seconds * 1000).toLocaleDateString(),
           description: `Vaccination at ${data.selectedCenter},${data.selectedArea} starting from ${new Date(data.startTime.seconds * 1000).toLocaleTimeString()} to ${new Date(data.endTime.seconds * 1000).toLocaleTimeString()}`,
           vaccineId: data.selectedVaccine,
-          location: data.selectedCenter
+          location: data.selectedCenter,
+          isNotificationEnabled: false 
         };
 
         fetchedReminders.push(reminder);
@@ -127,6 +132,42 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
       setLoading(false);
     }
   };
+
+
+  const toggleReminderNotification = async (reminder: Reminder) => {
+    const updatedReminders = reminders.map((item) => {
+      if (item.id === reminder.id) {
+        // Toggle notification status
+        item.isNotificationEnabled = !item.isNotificationEnabled;
+
+        if (item.isNotificationEnabled) {
+          // Schedule a notification
+          const notificationDate = new Date(reminder.date); // Convert to the proper date format if necessary
+          notificationDate.setDate(notificationDate.getDate() - 1); // Set to trigger 1 day before the event
+          scheduleNotificationAsync({
+            content: {
+              title: 'Reminder!',
+              body: 'This is your scheduled reminder!',
+              sound: 'default',
+            },
+            trigger: {
+              seconds: 10,  // Notification will trigger after 10 seconds
+            },
+          });
+          console.log('reminder anable')
+        } else {
+          // Cancel notification
+          cancelScheduledNotificationAsync(reminder.id);
+        }
+      }
+      return item;
+    });
+
+    setReminders(updatedReminders);
+  };
+
+
+
   const handleParticipatingPress = (reminder: Reminder) => {
     setSelectedReminder(reminder);
     setModalVisible(true);
@@ -218,7 +259,12 @@ const Reminders = ({ loggedChildId }: { loggedChildId: string }) => {
               <Text className="text-lg font-semibold">
                 Vaccine - <Text className="font-bold">{item.vaccine}</Text>
               </Text>
-              <Ionicons name="notifications" size={24} color="blue" />
+              <Ionicons
+                name={item.isNotificationEnabled ? "notifications" : "notifications-off"} // Change icon based on status
+                size={24}
+                color={item.isNotificationEnabled ? "blue" : "gray"} // Change color based on status
+                onPress={() => toggleReminderNotification(item)} // Handle toggle press
+              />
             </View>
             <Text className="text-gray-600 text-base">{item.description}</Text>
             <View className="flex-row justify-between items-center mt-4">
